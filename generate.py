@@ -42,13 +42,12 @@ def get_notes(api_key: str, user_id: str, since_id: str = None, limit: int = 100
     response: requests.Response = session.post(url=base_url, json=params)
     return response, session
 
-def update_corpus(api_key: str, user_id: str, sentiment_score_minimum: float = 1.0, since_id: str = None, limit: int = 100, corpus_path: str = "corpus.txt"):
+def update_corpus(api_key: str, user_id: str, sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, since_id: str = None, limit: int = 100, corpus_path: str = "corpus.txt"):
     corpus = open(file=corpus_path, mode="a")
 
     # Setup Session
     session: requests.Session = requests.Session()
     pattern: re.Pattern = re.compile(pattern="(@)([A-Za-z0-9_]+@[A-Za-z0-9_.]+)\w+")
-    sentiment_analyzer: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()
 
     count: int = 0
     loop: bool = True
@@ -116,7 +115,7 @@ def update_corpus(api_key: str, user_id: str, sentiment_score_minimum: float = 1
 
     return since_id
 
-def create_markov_texts(sentiment_score_minimum: float = 1.0, max_chars: int = 3000, corpus_path: str = "corpus.txt", sentiment_analyzer: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()):
+def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, max_chars: int = 3000, corpus_path: str = "corpus.txt"):
     corpus: str = None
     with open(corpus_path) as f:
         corpus: str = f.read()
@@ -212,7 +211,11 @@ if __name__ == "__main__":
 
     # Download VADER lexicon for sentiment analysis
     # VADER is designed for short, social media posts
-    nltk.download('vader_lexicon')
+    if not nltk.data.find('sentiment/vader_lexicon.zip'):
+        nltk.download('vader_lexicon')
+
+    # Initialize Sentiment Score Analysis
+    sentiment_analyzer: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()
 
     # Get Saved Latest ID If Exists
     if os.path.exists(id_tracker_path):
@@ -220,7 +223,7 @@ if __name__ == "__main__":
             human_since_id: str = f.read().strip()
 
     # Update Corpus
-    since_id: str = update_corpus(sentiment_score_minimum=sentiment_score_minimum, api_key=human_api_key, user_id=human_user_id, since_id=human_since_id)
+    since_id: str = update_corpus(sentiment_score_minimum=sentiment_score_minimum, api_key=human_api_key, user_id=human_user_id, since_id=human_since_id, sentiment_analyzer=sentiment_analyzer)
 
     # Save Latest ID
     with open(file=id_tracker_path, mode="w") as f:
@@ -229,7 +232,7 @@ if __name__ == "__main__":
     # Generate Markov Posts
     count = 0
     while count < num_notes:
-        markov_text: str = create_markov_texts(sentiment_score_minimum=sentiment_score_minimum)
+        markov_text: str = create_markov_texts(sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer)
 
         if args.dry_run is not None and args.dry_run != True:
             response, session = create_note(api_key=bot_api_key, text=markov_text, visibility="home")
