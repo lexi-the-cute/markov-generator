@@ -3,6 +3,7 @@ import os
 import re
 
 import nltk
+import spacy
 
 import requests
 import argparse
@@ -47,7 +48,7 @@ def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int =
 
     # Setup Session
     session: requests.Session = requests.Session()
-    pattern: re.Pattern = re.compile(pattern="(@)([A-Za-z0-9_]+@[A-Za-z0-9_.]+)\w+")
+    pattern: re.Pattern = re.compile(pattern=r"(@)([A-Za-z0-9_]+@[A-Za-z0-9_.]+)\w+")
 
     count: int = 0
     loop: bool = True
@@ -100,8 +101,16 @@ def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int =
                 # print(note["text"])
                 continue
 
+            # Revert nyaized text
+            text: str = get_reverted_nyaized_text(text=note["text"].strip())
+
+            # Clean text
+            text: str = get_cleaned_text(text=text)
+
+            # Process text
+            text: str = get_processed_text(doc=nlp(text))
+
             # Write corpus
-            text: str = note["text"].strip()
             corpus.write(f"{text}\n")
         
             # Count number of notes processed
@@ -109,7 +118,7 @@ def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int =
 
     return since_id
 
-def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, max_chars: int = 3000, corpus_path: str = "corpus.txt"):
+def create_markov_texts(nlp, sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, max_chars: int = 3000, corpus_path: str = "corpus.txt"):
     corpus: str = None
     with open(corpus_path) as f:
         corpus: str = f.read()
@@ -129,8 +138,43 @@ def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentimen
 
         break
 
+    # Nyaize the text
+    text: str = get_nyaized_text(text=text)
+
     # Generate the text
     return text
+
+def get_reverted_nyaized_text(text: str):
+    text: str = re.sub(pattern=r"(nyan)(?=[bcdfghjklmnpqrstvwxyz])", repl="non", string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = re.sub(pattern=r"(?<=every)(nyan)", repl="one", string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = re.sub(pattern=r"(?<=morn)(yan)", repl="ing", string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = re.sub(pattern=r"(?<=n)(ya)", repl="a", string=text, flags=re.IGNORECASE|re.MULTILINE)
+
+    return text
+
+def get_nyaized_text(text: str):
+    text: str = re.sub(pattern=r"(?<=n)(a)", repl="ya", string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = re.sub(pattern=r"(?<=morn)(ing)", repl="yan", string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = re.sub(pattern=r"(?<=every)(one)", repl="nyan", string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = re.sub(pattern=r"(non)(?=[bcdfghjklmnpqrstvwxyz])", repl="nyan", string=text, flags=re.IGNORECASE|re.MULTILINE)
+
+    return text
+
+def get_cleaned_text(text: str):
+    text: str = re.sub(pattern=r'http\S+', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
+
+    return text
+
+def get_processed_text(doc: spacy.tokens.doc.Doc):
+    return " ".join([sent.text for sent in doc.sents if len(sent.text) > 1])
+
+def get_sentiment(text: str, sid: SentimentIntensityAnalyzer):
+    score: dict = sid.polarity_scores(text)
+    
+    positive: float = round((score['pos'] * 10), 2)
+    negative: float = round((score['neg'] * 10), 2)
+
+    return positive, negative
 
 # Built in boolean parsing does not work as expected, so use this custom parser instead
 def parse_boolean_from_string(string: str):
@@ -140,14 +184,6 @@ def parse_boolean_from_string(string: str):
         return False
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
-
-def get_sentiment(text: str, sid: SentimentIntensityAnalyzer):
-    score: dict = sid.polarity_scores(text)
-    
-    positive: float = round((score['pos'] * 10), 2)
-    negative: float = round((score['neg'] * 10), 2)
-
-    return positive, negative
 
 if __name__ == "__main__":
     argParser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -159,7 +195,7 @@ if __name__ == "__main__":
     argParser.add_argument("-da", "--destination-api-key",
                            nargs="?",
                            type=str,
-                           help="API key for destionation of Markov texts (default: %(default)s)")
+                           help="API key for destination of Markov texts (default: %(default)s)")
 
     argParser.add_argument("-suid", "--source-user-id",
                            nargs="?",
@@ -203,12 +239,28 @@ if __name__ == "__main__":
     num_notes: int = args.number_of_posts
     sentiment_score_minimum: float = args.sentiment_score_minimum
 
+    # NLTK Lexicon
+    nltk_lexicon: str = "vader_lexicon"
+    nltk_lexicon_path: str = "sentiment/vader_lexicon.zip"
+
+    # Spacy Model
+    spacy_model: str = "en_core_web_trf"  # en_core_web_sm is less accurate, en_core_web_trf is more accurate
+
     # Download VADER lexicon for sentiment analysis
     # VADER is designed for short, social media posts
     try:
-        nltk.data.find('sentiment/vader_lexicon.zip')
+        nltk.data.find(nltk_lexicon_path)
     except LookupError:
-        nltk.download('vader_lexicon')
+        print(f"Failed to find {nltk_lexicon}. Downloading for you...")
+        nltk.download(nltk_lexicon)
+
+    # Open text parser
+    if spacy.util.is_package(spacy_model):
+        nlp = spacy.load(spacy_model)  # spacy.lang.en.English
+    else:
+        print(f"Failed to find {spacy_model}. Downloading for you...")
+        spacy.cli.download(spacy_model)
+        nlp = spacy.load(spacy_model)  # spacy.lang.en.English
 
     # Initialize Sentiment Score Analysis
     sentiment_analyzer: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()
@@ -228,13 +280,15 @@ if __name__ == "__main__":
     # Generate Markov Posts
     count = 0
     while count < num_notes:
-        markov_text: str = create_markov_texts(sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer)
+        markov_text: str = create_markov_texts(nlp=nlp, sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer)
 
         if args.dry_run is not None and args.dry_run != True:
             response, session = create_note(api_key=bot_api_key, text=markov_text, visibility="home")
-        else:
-            print("Dry run...")
 
-        # Display Post
-        print(f"Generated note: `{markov_text}`")
+            # Display post
+            print(f"Generated note: `{markov_text}`")
+        else:
+            # Display dry run
+            print(f"Dry run... Generated note: `{markov_text}`")
+
         count += 1
