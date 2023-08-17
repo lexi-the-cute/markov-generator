@@ -42,7 +42,7 @@ def get_notes(api_key: str, user_id: str, since_id: str = None, limit: int = 100
     response: requests.Response = session.post(url=base_url, json=params)
     return response, session
 
-def update_corpus(api_key: str, user_id: str, sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, since_id: str = None, limit: int = 100, corpus_path: str = "corpus.txt"):
+def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int = 100, corpus_path: str = "corpus.txt"):
     corpus = open(file=corpus_path, mode="a")
 
     # Setup Session
@@ -98,12 +98,6 @@ def update_corpus(api_key: str, user_id: str, sentiment_analyzer: SentimentInten
             # We want to be sure to sanitize out mentions
             if re.search(pattern, note["text"]) is not None:
                 # print(note["text"])
-                continue
-
-            # We want to keep the notes more positive
-            positive_score, negative_score = get_sentiment(text=note["text"], sid=sentiment_analyzer)
-            if positive_score < sentiment_score_minimum:
-                # print(f"{positive_score} - Negative: {note['text']}")
                 continue
 
             # Write corpus
@@ -225,7 +219,7 @@ if __name__ == "__main__":
             human_since_id: str = f.read().strip()
 
     # Update Corpus
-    since_id: str = update_corpus(sentiment_score_minimum=sentiment_score_minimum, api_key=human_api_key, user_id=human_user_id, since_id=human_since_id, sentiment_analyzer=sentiment_analyzer)
+    since_id: str = update_corpus(api_key=human_api_key, user_id=human_user_id, since_id=human_since_id)
 
     # Save Latest ID
     with open(file=id_tracker_path, mode="w") as f:
