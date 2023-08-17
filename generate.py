@@ -147,7 +147,7 @@ def parse_boolean_from_string(string: str):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
-def get_sentiment(text: str, sid: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()):
+def get_sentiment(text: str, sid: SentimentIntensityAnalyzer):
     score: dict = sid.polarity_scores(text)
     
     positive: float = round((score['pos'] * 10), 2)
