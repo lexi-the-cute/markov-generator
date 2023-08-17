@@ -211,7 +211,9 @@ if __name__ == "__main__":
 
     # Download VADER lexicon for sentiment analysis
     # VADER is designed for short, social media posts
-    if not nltk.data.find('sentiment/vader_lexicon.zip'):
+    try:
+        nltk.data.find('sentiment/vader_lexicon.zip')
+    except LookupError:
         nltk.download('vader_lexicon')
 
     # Initialize Sentiment Score Analysis
