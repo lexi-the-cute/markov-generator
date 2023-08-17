@@ -209,7 +209,7 @@ if __name__ == "__main__":
                            type=str,
                            help="User ID for source of texts (default: %(default)s)")
 
-    argParser.add_argument("-ssid", "--source-since-id",
+    argParser.add_argument("-ssid", "--source-post-id",
                            nargs="?",
                            type=str,
                            help="First Post ID for source of texts; only necessary on first run (default: %(default)s)")
@@ -237,7 +237,7 @@ if __name__ == "__main__":
     # Retrieve from human account for updating corpus
     human_api_key: str = args.source_api_key
     human_user_id: str = args.source_user_id
-    human_until_id: str = args.source_until_id  # Latest Note ID is `9ih79s19aa6v49fh`  # Original Note ID is `9h61mim7x5qg1szz`
+    human_until_id: str = args.source_post_id  # Latest Note ID is `9ih79s19aa6v49fh`  # Original Note ID is `9h61mim7x5qg1szz`
 
     # Post to bot account from markov chain
     bot_api_key: str = args.destination_api_key
