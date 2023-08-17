@@ -25,7 +25,7 @@ def create_note(api_key: str, text: str, content_warning: str = "markov generate
     response: requests.Response = session.post(url=base_url, json=params)
     return response, session
 
-def get_notes(api_key: str, user_id: str, since_id: str = None, limit: int = 100, session: requests.Session = requests.Session()):
+def get_notes(api_key: str, user_id: str, until_id: str = None, limit: int = 100, session: requests.Session = requests.Session()):
     base_url: str = "https://catgirl.land/api/users/notes"
 
     # select text from note where "userId" = '9h5znfmoxj3nldm4' and "renoteId" is null and "replyId" is null and mentions = '{}'; 
@@ -37,13 +37,13 @@ def get_notes(api_key: str, user_id: str, since_id: str = None, limit: int = 100
         "limit": limit
     }
 
-    if since_id is not None:
-        params["sinceId"] = since_id
+    if until_id is not None:
+        params["untilId"] = until_id
 
     response: requests.Response = session.post(url=base_url, json=params)
     return response, session
 
-def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int = 100, corpus_path: str = "corpus.txt"):
+def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int = 100, corpus_path: str = "corpus.txt"):
     corpus = open(file=corpus_path, mode="a")
 
     # Setup Session
@@ -53,7 +53,7 @@ def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int =
     count: int = 0
     loop: bool = True
     while loop:
-        response, session = get_notes(api_key=api_key, user_id=user_id, since_id=since_id, session=session)
+        response, session = get_notes(api_key=api_key, user_id=user_id, until_id=until_id, session=session)
 
         status = response.status_code
         results = response.json()
@@ -62,12 +62,13 @@ def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int =
             print(f"get_notes(...) status code is {status}... exiting...")
             exit(1)
         
+        print(f"Results: {len(results)}")
         if len(results) <= 0:
             loop: bool = False
 
         print(f"{humanize.intcomma(count)} notes processed....")
         for note in results:
-            since_id: str = note['id']
+            until_id: str = note['id']
 
             # "public" "home" "followers" "specified" "hidden"
             # We don't want to process private notes
@@ -107,8 +108,14 @@ def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int =
             # Clean text
             text: str = get_cleaned_text(text=text)
 
+            # Split text for model
+            text_split_len: int = 512
+            split: list = [text[i:i+text_split_len] for i in range(0, len(text), text_split_len)]
+            
             # Process text
-            text: str = get_processed_text(doc=nlp(text))
+            text: str = ""
+            for piece in split:
+                text: str = text + get_processed_text(doc=nlp(piece))
 
             # Write corpus
             corpus.write(f"{text}\n")
@@ -116,15 +123,15 @@ def update_corpus(api_key: str, user_id: str, since_id: str = None, limit: int =
             # Count number of notes processed
             count += 1
 
-    return since_id
+    return until_id
 
-def create_markov_texts(nlp, sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, max_chars: int = 3000, corpus_path: str = "corpus.txt"):
+def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, corpus_path: str = "corpus.txt"):
     corpus: str = None
     with open(corpus_path) as f:
         corpus: str = f.read()
 
     # Build the model from the corpus
-    model: markovify.Text = markovify.Text(input_text=corpus)
+    model: markovify.Text = markovify.Text(input_text=corpus, state_size=state_size)
 
     # Keep looping until high quality text is generated
     while True:
@@ -230,7 +237,7 @@ if __name__ == "__main__":
     # Retrieve from human account for updating corpus
     human_api_key: str = args.source_api_key
     human_user_id: str = args.source_user_id
-    human_since_id: str = args.source_since_id  # Latest Note ID is `9ih79s19aa6v49fh`  # Original Note ID is `9h61mim7x5qg1szz`
+    human_until_id: str = args.source_until_id  # Latest Note ID is `9ih79s19aa6v49fh`  # Original Note ID is `9h61mim7x5qg1szz`
 
     # Post to bot account from markov chain
     bot_api_key: str = args.destination_api_key
@@ -245,6 +252,9 @@ if __name__ == "__main__":
 
     # Spacy Model
     spacy_model: str = "en_core_web_trf"  # en_core_web_sm is less accurate, en_core_web_trf is more accurate
+
+    # Markov Model
+    state_size: int = 3
 
     # Download VADER lexicon for sentiment analysis
     # VADER is designed for short, social media posts
@@ -268,19 +278,19 @@ if __name__ == "__main__":
     # Get Saved Latest ID If Exists
     if os.path.exists(id_tracker_path):
         with open(file=id_tracker_path, mode="r") as f:
-            human_since_id: str = f.read().strip()
+            human_until_id: str = f.read().strip()
 
     # Update Corpus
-    since_id: str = update_corpus(api_key=human_api_key, user_id=human_user_id, since_id=human_since_id)
+    until_id: str = update_corpus(api_key=human_api_key, user_id=human_user_id, until_id=human_until_id)
 
     # Save Latest ID
     with open(file=id_tracker_path, mode="w") as f:
-        f.write(since_id)
+        f.write(until_id)
 
     # Generate Markov Posts
     count = 0
     while count < num_notes:
-        markov_text: str = create_markov_texts(nlp=nlp, sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer)
+        markov_text: str = create_markov_texts(sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer, state_size=state_size)
 
         if args.dry_run is not None and args.dry_run != True:
             response, session = create_note(api_key=bot_api_key, text=markov_text, visibility="home")
