@@ -1,0 +1,6 @@
+# Generated Files
+/corpus.txt
+/latest_id.txt
+
+# Venv
+/.venv
