@@ -168,7 +168,10 @@ def get_nyaized_text(text: str):
     return text
 
 def get_cleaned_text(text: str):
+    text: str = text.strip()
+    text: str = re.sub(pattern=r'\[.*\]\(http.+\)', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = re.sub(pattern=r'http\S+', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = f"{text}\n"
 
     return text
 
@@ -286,6 +289,8 @@ if __name__ == "__main__":
     # Save Latest ID
     with open(file=id_tracker_path, mode="w") as f:
         f.write(until_id)
+
+    # TODO: Check if corpus is empty and display fatal error!
 
     # Generate Markov Posts
     count = 0
