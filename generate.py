@@ -62,7 +62,7 @@ def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int =
             print(f"get_notes(...) status code is {status}... exiting...")
             exit(1)
         
-        print(f"Results: {len(results)}")
+        # print(f"Results: {len(results)}")
         if len(results) <= 0:
             loop: bool = False
 
