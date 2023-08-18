@@ -102,6 +102,11 @@ def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int =
                 # print(note["text"])
                 continue
 
+            # Toss text which shouldn't be included at all
+            if get_should_toss_text(text=note["text"]):
+                # print(note["text"])
+                continue
+
             # Revert nyaized text
             text: str = get_reverted_nyaized_text(text=note["text"].strip())
 
@@ -125,22 +130,27 @@ def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int =
 
     return until_id
 
-def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, corpus_path: str = "corpus.txt"):
+def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, reject_pattern: str = r"(^`)|(`$)|\s`|`\s|(^')|('$)|\s'|'\s|[\"(\(\)\[\])]", corpus_path: str = "corpus.txt"):
     corpus: str = None
     with open(corpus_path) as f:
         corpus: str = f.read()
 
     # Build the model from the corpus
-    model: markovify.Text = markovify.Text(input_text=corpus, state_size=state_size)
+    model: markovify.Text = markovify.Text(input_text=corpus, state_size=state_size, well_formed=True, reject_reg=reject_pattern)
 
     # Keep looping until high quality text is generated
     while True:
         text: str = model.make_short_sentence(max_chars=max_chars)
 
+        # Toss text which shouldn't be included at all
+        if get_should_toss_text(text=text):
+            continue
+
         # We want to keep the notes more positive
         positive_score, negative_score = get_sentiment(text=text, sid=sentiment_analyzer)
+        # print(f"Pos: {positive_score} - Neg: {negative_score} - Note: {text}")
+
         if positive_score < sentiment_score_minimum:
-            # print(f"{positive_score} - Negative: {note['text']}")
             continue
 
         break
@@ -171,9 +181,65 @@ def get_cleaned_text(text: str):
     text: str = text.strip()
     text: str = re.sub(pattern=r'\[.*\]\(http.+\)', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = re.sub(pattern=r'http\S+', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = text.replace("UwU UwU", "UwU")
     text: str = f"{text}\n"
 
     return text
+
+def get_should_toss_text(text: str):
+    # Trying to keep people's names out of the generation
+    if 'nagifur' in text.lower():
+        return True
+
+    # Keep begposts out of the chain
+    if 'donate' in text.lower():
+        return True
+    
+    # Keep begposts out of the chain
+    if 'paid' in text.lower():
+        return True
+
+    # America is a sad place, toss any mentions
+    if 'u.s' in text.lower():
+        return True
+
+    # CMake is hmmmmm
+    if 'cmakecache.txt' in text.lower():
+        return True
+
+    # CPU is not something I want to include atm
+    if 'cpu' in text.lower():
+        return True
+    
+    # Just no
+    if 'chatgpt' in text.lower():
+        return True
+
+    # Negative connotation
+    if 'perception of me' in text.lower():
+        return True
+
+    # Hellsite
+    if 'twitter' in text.lower():
+        return True
+
+    # @instance.actor@catgirl.land and @relay.actor@catgirl.land
+    if '.actor@' in text.lower():
+        return True
+
+    # catgirl....onion
+    if '..onion' in text.lower():
+        return True
+
+    # catgirl....onion
+    if 'urls:' in text.lower():
+        return True
+
+    # Keep corporate names out of results
+    if 'digitalocean' in text.lower():
+        return True
+
+    return False
 
 def get_processed_text(doc: spacy.tokens.doc.Doc):
     return " ".join([sent.text for sent in doc.sents if len(sent.text) > 1])
@@ -259,6 +325,49 @@ if __name__ == "__main__":
     # Markov Model
     state_size: int = 3
 
+    # Custom VADER lexicon additions
+    new_words: dict = {
+        # Gay Speak
+        'UwU': 0.2,
+        'OwO': 0.2,
+        'awawawa': 0.5,
+        'mew': 0.2,
+        'mrrp': 0.6,
+        'miau': 0.4,
+        'eepy': 0.7,
+        ':3': 0.3,
+        'catgirl': 0.5,
+        'catboy': 0.5,
+        'doggirl': 0.5,
+        'dogboy': 0.5,
+        'foxgirl': 0.5,
+        'foxboy': 0.5,
+        'demongirl': 0.5,
+        'demonboy': 0.5,
+        'trans': 0.3,
+        'gay': 0.3,
+        'canonically trans': 0.5,
+
+        # Emojis
+        ':blobfox_mlem:': 0.8,
+        ':blobfox_pleading:': 0.8,
+
+        # Negative Sentiment
+        ':blobfox_sad:': -0.3,  # Mark emoji as sad
+        ':neocat_sad:': -0.3,  # Mark emoji as sad
+        ':neofox_sad:': -0.3,  # Mark emoji as sad
+        ':blobfox_pat_sad:': -0.4,  # Mark emoji as sad
+        ':blobcat_very_sad:': -0.6,  # Mark emoji as sad
+        ':blobcat_sad_reach:': -0.6,  # Mark emoji as sad
+        ':neocat_sad_reach:': -0.6,  # Mark emoji as sad
+        ':blobfox_sad_reach:': -0.6,  # Mark emoji as sad
+        ':neofox_sad_reach:': -0.6,  # Mark emoji as sad
+        ':blobcat_sad_huggies:': -0.6,  # Mark emoji as sad
+        'spam': -0.5,  # Hate spam
+        'jeez': -0.5,  # Complaint
+        'ISPs': -0.3,  # Internet Service Providers
+    }
+
     # Download VADER lexicon for sentiment analysis
     # VADER is designed for short, social media posts
     try:
@@ -277,6 +386,7 @@ if __name__ == "__main__":
 
     # Initialize Sentiment Score Analysis
     sentiment_analyzer: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()
+    sentiment_analyzer.lexicon.update(new_words)
 
     # Get Saved Latest ID If Exists
     if os.path.exists(id_tracker_path):
