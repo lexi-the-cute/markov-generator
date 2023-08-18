@@ -11,8 +11,13 @@ import humanize
 import markovify
 
 from nltk.sentiment import SentimentIntensityAnalyzer
+from mosestokenizer import MosesDetokenizer
 
 def create_note(api_key: str, text: str, content_warning: str = "markov generated post", visibility: str = "followers", session: requests.Session = requests.Session()):
+    # Validate text
+    if text is None:
+        text: str = ""
+
     base_url: str = "https://catgirl.land/api/notes/create"
 
     params: dict = {
@@ -43,7 +48,7 @@ def get_notes(api_key: str, user_id: str, until_id: str = None, limit: int = 100
     response: requests.Response = session.post(url=base_url, json=params)
     return response, session
 
-def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int = 100, corpus_path: str = "corpus.txt"):
+def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int = 100, text_to_toss: list[str] = [], corpus_path: str = "corpus.txt"):
     corpus = open(file=corpus_path, mode="a")
 
     # Setup Session
@@ -103,7 +108,7 @@ def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int =
                 continue
 
             # Toss text which shouldn't be included at all
-            if get_should_toss_text(text=note["text"]):
+            if get_should_toss_text(text=note["text"], text_to_toss=text_to_toss):
                 # print(note["text"])
                 continue
 
@@ -130,7 +135,14 @@ def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int =
 
     return until_id
 
-def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, reject_pattern: str = r"(^`)|(`$)|\s`|`\s|(^')|('$)|\s'|'\s|[\"(\(\)\[\])]", corpus_path: str = "corpus.txt"):
+def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: SentimentIntensityAnalyzer, text_to_toss: list[str] = [], stopwords: list[str] = [], sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, reject_pattern: str = r"(^`)|(`$)|\s`|`\s|(^')|('$)|\s'|'\s|[\"(\(\)\[\])]", corpus_path: str = "corpus.txt"):
+    corpus_file_size: int = os.path.getsize(corpus_path)
+
+    # Friendlier error
+    if corpus_file_size <= 0:
+        print("Corpus file is empty, please check your starting post id used for generating the corpus... exiting...")
+        exit(1)
+
     corpus: str = None
     with open(corpus_path) as f:
         corpus: str = f.read()
@@ -143,11 +155,17 @@ def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentimen
         text: str = model.make_short_sentence(max_chars=max_chars)
 
         # Toss text which shouldn't be included at all
-        if get_should_toss_text(text=text):
+        if get_should_toss_text(text=text, text_to_toss=text_to_toss):
             continue
 
+        # Remove stopwords from text for analysis
+        no_stopwords_text: str = remove_stopwords(text=text, stopwords=stopwords, detokenize=detokenize)
+
+        # Rebuild sentences to fix grammar
+        text: str = rebuild_sentences(text=text, detokenize=detokenize)
+
         # We want to keep the notes more positive
-        positive_score, negative_score = get_sentiment(text=text, sid=sentiment_analyzer)
+        positive_score, negative_score = get_sentiment(text=no_stopwords_text, sid=sentiment_analyzer)
         # print(f"Pos: {positive_score} - Neg: {negative_score} - Note: {text}")
 
         if positive_score < sentiment_score_minimum:
@@ -158,10 +176,18 @@ def create_markov_texts(sentiment_analyzer: SentimentIntensityAnalyzer, sentimen
     # Nyaize the text
     text: str = get_nyaized_text(text=text)
 
+    # Set text to null if zero length
+    if isinstance(text, str) and len(text) <= 0:
+        text = None
+
     # Generate the text
     return text
 
 def get_reverted_nyaized_text(text: str):
+    # Validate text
+    if text is None:
+        text: str = ""
+
     text: str = re.sub(pattern=r"(nyan)(?=[bcdfghjklmnpqrstvwxyz])", repl="non", string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = re.sub(pattern=r"(?<=every)(nyan)", repl="one", string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = re.sub(pattern=r"(?<=morn)(yan)", repl="ing", string=text, flags=re.IGNORECASE|re.MULTILINE)
@@ -170,6 +196,10 @@ def get_reverted_nyaized_text(text: str):
     return text
 
 def get_nyaized_text(text: str):
+    # Validate text
+    if text is None:
+        text: str = ""
+
     text: str = re.sub(pattern=r"(?<=n)(a)", repl="ya", string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = re.sub(pattern=r"(?<=morn)(ing)", repl="yan", string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = re.sub(pattern=r"(?<=every)(one)", repl="nyan", string=text, flags=re.IGNORECASE|re.MULTILINE)
@@ -178,6 +208,10 @@ def get_nyaized_text(text: str):
     return text
 
 def get_cleaned_text(text: str):
+    # Validate text
+    if text is None:
+        text: str = ""
+
     text: str = text.strip()
     text: str = re.sub(pattern=r'\[.*\]\(http.+\)', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = re.sub(pattern=r'http\S+', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
@@ -186,65 +220,56 @@ def get_cleaned_text(text: str):
 
     return text
 
-def get_should_toss_text(text: str):
-    # Trying to keep people's names out of the generation
-    if 'nagifur' in text.lower():
-        return True
+def get_should_toss_text(text: str, text_to_toss: list[str] = []):
+    # Validate text
+    if text is None:
+        text: str = ""
 
-    # Keep begposts out of the chain
-    if 'donate' in text.lower():
-        return True
-    
-    # Keep begposts out of the chain
-    if 'paid' in text.lower():
-        return True
+    # Pull out all toss words
+    toss_words: list[str] = [w for w in nltk.word_tokenize(text) if w.lower() in text_to_toss]
 
-    # America is a sad place, toss any mentions
-    if 'u.s' in text.lower():
-        return True
-
-    # CMake is hmmmmm
-    if 'cmakecache.txt' in text.lower():
-        return True
-
-    # CPU is not something I want to include atm
-    if 'cpu' in text.lower():
-        return True
-    
-    # Just no
-    if 'chatgpt' in text.lower():
-        return True
-
-    # Negative connotation
-    if 'perception of me' in text.lower():
-        return True
-
-    # Hellsite
-    if 'twitter' in text.lower():
-        return True
-
-    # @instance.actor@catgirl.land and @relay.actor@catgirl.land
-    if '.actor@' in text.lower():
-        return True
-
-    # catgirl....onion
-    if '..onion' in text.lower():
-        return True
-
-    # catgirl....onion
-    if 'urls:' in text.lower():
-        return True
-
-    # Keep corporate names out of results
-    if 'digitalocean' in text.lower():
+    # print(f"Toss words: {toss_words}")
+    if len(toss_words) > 0:
         return True
 
     return False
+
+def remove_stopwords(text: str, detokenize: MosesDetokenizer, stopwords: list[str] = []):
+    # Validate text
+    if text is None:
+        text: str = ""
+
+    sentences: list[str] = []
+    for sentence in nltk.sent_tokenize(text):
+        words: list[str] = [w for w in nltk.word_tokenize(sentence) if w.lower() not in stopwords]
+        sentence: str = detokenize(words)
+
+        sentences.append(sentence)
+
+    return ' '.join(sentences)
+
+def rebuild_sentences(text: str, detokenize: MosesDetokenizer):
+    # Validate text
+    if text is None:
+        text: str = ""
+
+    sentences: list[str] = []
+    for sentence in nltk.sent_tokenize(text):
+        words: list[str] = nltk.word_tokenize(sentence)
+        sentence: str = detokenize(words)
+
+        sentences.append(sentence)
+
+    return ' '.join(sentences)
 
 def get_processed_text(doc: spacy.tokens.doc.Doc):
     return " ".join([sent.text for sent in doc.sents if len(sent.text) > 1])
 
 def get_sentiment(text: str, sid: SentimentIntensityAnalyzer):
+    # Validate text
+    if text is None:
+        text: str = ""
+
     score: dict = sid.polarity_scores(text)
     
     positive: float = round((score['pos'] * 10), 2)
@@ -315,9 +340,17 @@ if __name__ == "__main__":
     num_notes: int = args.number_of_posts
     sentiment_score_minimum: float = args.sentiment_score_minimum
 
-    # NLTK Lexicon
-    nltk_lexicon: str = "vader_lexicon"
-    nltk_lexicon_path: str = "sentiment/vader_lexicon.zip"
+    # NLTK PUNKT Lexicon
+    nltk_punkt_lexicon: str = "punkt"
+    nltk_punkt_lexicon_path: str = "tokenizers/punkt"
+
+    # NLTK STOPWORDS Lexicon
+    nltk_stopwords_lexicon: str = "stopwords"
+    nltk_stopwords_lexicon_path: str = "corpora/stopwords.zip"
+
+    # NLTK VADER Lexicon
+    nltk_vader_lexicon: str = "vader_lexicon"
+    nltk_vader_lexicon_path: str = "sentiment/vader_lexicon.zip"
 
     # Spacy Model
     spacy_model: str = "en_core_web_trf"  # en_core_web_sm is less accurate, en_core_web_trf is more accurate
@@ -346,7 +379,6 @@ if __name__ == "__main__":
         'demonboy': 0.5,
         'trans': 0.3,
         'gay': 0.3,
-        'canonically trans': 0.5,
 
         # Emojis
         ':blobfox_mlem:': 0.8,
@@ -368,13 +400,29 @@ if __name__ == "__main__":
         'ISPs': -0.3,  # Internet Service Providers
     }
 
+    # Download PUNKT lexicon for sentiment analysis
+    # PUNKT is designed for removing tokenizing words
+    try:
+        nltk.data.find(nltk_punkt_lexicon_path)
+    except LookupError:
+        print(f"Failed to find {nltk_punkt_lexicon}. Downloading for you...")
+        nltk.download(nltk_punkt_lexicon)
+
+    # Download STOPWORDS lexicon for sentiment analysis
+    # STOPWORDS is designed for removing useless words
+    try:
+        nltk.data.find(nltk_stopwords_lexicon_path)
+    except LookupError:
+        print(f"Failed to find {nltk_stopwords_lexicon}. Downloading for you...")
+        nltk.download(nltk_stopwords_lexicon)
+
     # Download VADER lexicon for sentiment analysis
     # VADER is designed for short, social media posts
     try:
-        nltk.data.find(nltk_lexicon_path)
+        nltk.data.find(nltk_vader_lexicon_path)
     except LookupError:
-        print(f"Failed to find {nltk_lexicon}. Downloading for you...")
-        nltk.download(nltk_lexicon)
+        print(f"Failed to find {nltk_vader_lexicon}. Downloading for you...")
+        nltk.download(nltk_vader_lexicon)
 
     # Open text parser
     if spacy.util.is_package(spacy_model):
@@ -384,9 +432,22 @@ if __name__ == "__main__":
         spacy.cli.download(spacy_model)
         nlp = spacy.load(spacy_model)  # spacy.lang.en.English
 
+    # Initialize Stopwords
+    stopwords: list = nltk.corpus.stopwords.words("english")
+
     # Initialize Sentiment Score Analysis
     sentiment_analyzer: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()
     sentiment_analyzer.lexicon.update(new_words)
+
+    # Initialize detokenizer
+    detokenize: MosesDetokenizer = MosesDetokenizer('en')
+
+    # Initialize Text To Toss List
+    text_to_toss: list = [
+     "nagifur", "donate", "paid", "u.s", "cmakecache.txt",
+     "cpu", "chatgpt", "perception of me", "twitter",
+     ".actor@", "..onion", "urls:", "digitalocean"
+    ]
 
     # Get Saved Latest ID If Exists
     if os.path.exists(id_tracker_path):
@@ -394,7 +455,7 @@ if __name__ == "__main__":
             human_until_id: str = f.read().strip()
 
     # Update Corpus
-    until_id: str = update_corpus(api_key=human_api_key, user_id=human_user_id, until_id=human_until_id)
+    until_id: str = update_corpus(api_key=human_api_key, user_id=human_user_id, until_id=human_until_id, text_to_toss=text_to_toss)
 
     # Save Latest ID
     with open(file=id_tracker_path, mode="w") as f:
@@ -405,7 +466,7 @@ if __name__ == "__main__":
     # Generate Markov Posts
     count = 0
     while count < num_notes:
-        markov_text: str = create_markov_texts(sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer, state_size=state_size)
+        markov_text: str = create_markov_texts(detokenize=detokenize, sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer, stopwords=stopwords, state_size=state_size)
 
         if args.dry_run is not None and args.dry_run != True:
             response, session = create_note(api_key=bot_api_key, text=markov_text, visibility="home")
