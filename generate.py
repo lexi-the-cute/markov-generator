@@ -117,6 +117,7 @@ def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int =
 
             # Clean text
             text: str = get_cleaned_text(text=text)
+            text: str = f"{text}\n"
 
             # Split text for model
             text_split_len: int = 512
@@ -135,7 +136,7 @@ def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int =
 
     return until_id
 
-def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: SentimentIntensityAnalyzer, text_to_toss: list[str] = [], stopwords: list[str] = [], sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, reject_pattern: str = r"(^`)|(`$)|\s`|`\s|(^')|('$)|\s'|'\s|[\"(\(\)\[\])]", corpus_path: str = "corpus.txt"):
+def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: SentimentIntensityAnalyzer, text_to_toss: list[str] = [], names: list[str] = [], stopwords: list[str] = [], sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, reject_pattern: str = r"(^`)|(`$)|\s`|`\s|(^')|('$)|\s'|'\s|[\"(\(\)\[\])]", corpus_path: str = "corpus.txt"):
     corpus_file_size: int = os.path.getsize(corpus_path)
 
     # Friendlier error
@@ -172,6 +173,12 @@ def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: Sentim
             continue
 
         break
+
+    # Normalize text
+    text: str = get_normalized_text(text=text, names=names)
+
+    # Clean the text
+    text: str = get_cleaned_text(text=text)
 
     # Nyaize the text
     text: str = get_nyaized_text(text=text)
@@ -216,7 +223,24 @@ def get_cleaned_text(text: str):
     text: str = re.sub(pattern=r'\[.*\]\(http.+\)', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = re.sub(pattern=r'http\S+', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
     text: str = text.replace("UwU UwU", "UwU")
-    text: str = f"{text}\n"
+    text: str = text.replace("* * ", "")
+
+    return text
+
+def get_normalized_text(text: str, names: list[str] = []):
+    # Validate text
+    if text is None:
+        text: str = ""
+
+    text: str = text.capitalize()
+    text: str = text.replace("Hmmmmmmm", "hmmmmmmm...")
+    text: str = text.replace(" uwu ", " UwU ")
+    text: str = text.replace(" owo ", " OwO ")
+    text: str = re.sub(pattern=r'(\s)i(\W)', repl=r'\1I\2', string=text, flags=re.IGNORECASE|re.MULTILINE)
+    text: str = re.sub(pattern=r'\.(\s)(\w)', repl=lambda m: f".{m.group(1)}{m.group(2).upper()}", string=text, flags=re.IGNORECASE|re.MULTILINE)
+    
+    for name in names:
+        text: str = text.replace(f" {name.lower()}", f" {name.capitalize()}")
 
     return text
 
@@ -226,11 +250,14 @@ def get_should_toss_text(text: str, text_to_toss: list[str] = []):
         text: str = ""
 
     # Pull out all toss words
-    toss_words: list[str] = [w for w in nltk.word_tokenize(text) if w.lower() in text_to_toss]
+    # toss_words: list[str] = [w for w in nltk.word_tokenize(text) if w.lower() in text_to_toss]
 
-    # print(f"Toss words: {toss_words}")
-    if len(toss_words) > 0:
-        return True
+    # Check if toss word in text
+    for w in text.split():
+        for toss_word in text_to_toss:
+            if toss_word.lower() in w.lower():
+                # print(f"W: `{w}` - Toss Word: `{toss_word}`")
+                return True
 
     return False
 
@@ -255,7 +282,8 @@ def rebuild_sentences(text: str, detokenize: MosesDetokenizer):
 
     sentences: list[str] = []
     for sentence in nltk.sent_tokenize(text):
-        words: list[str] = nltk.word_tokenize(sentence)
+        # words: list[str] = nltk.word_tokenize(sentence)
+        words: list[str] = sentence.split()
         sentence: str = detokenize(words)
 
         sentences.append(sentence)
@@ -398,7 +426,26 @@ if __name__ == "__main__":
         'spam': -0.5,  # Hate spam
         'jeez': -0.5,  # Complaint
         'ISPs': -0.3,  # Internet Service Providers
+        'lie': -0.5    # Shows up way too much, and negative
     }
+
+    custom_names: list[str] = [
+        "becky",
+        "prim",
+        "mastodon",
+        "alexis",
+        "mia",
+        "firefish",
+        "iceshrimp",
+        "misskey",
+        "akkoma",
+        "pleroma",
+        "pixelfed",
+        "hometown",
+        "calckey",
+        "foundkey",
+        "lemmy"
+    ]
 
     # Download PUNKT lexicon for sentiment analysis
     # PUNKT is designed for removing tokenizing words
@@ -408,7 +455,7 @@ if __name__ == "__main__":
         print(f"Failed to find {nltk_punkt_lexicon}. Downloading for you...")
         nltk.download(nltk_punkt_lexicon)
 
-    # Download STOPWORDS lexicon for sentiment analysis
+    # Download STOPWORDS lexicon for removing useless words
     # STOPWORDS is designed for removing useless words
     try:
         nltk.data.find(nltk_stopwords_lexicon_path)
@@ -434,6 +481,9 @@ if __name__ == "__main__":
 
     # Initialize Stopwords
     stopwords: list = nltk.corpus.stopwords.words("english")
+
+    # Initialize Names
+    names: list = custom_names
 
     # Initialize Sentiment Score Analysis
     sentiment_analyzer: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()
@@ -466,7 +516,7 @@ if __name__ == "__main__":
     # Generate Markov Posts
     count = 0
     while count < num_notes:
-        markov_text: str = create_markov_texts(detokenize=detokenize, sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer, stopwords=stopwords, state_size=state_size)
+        markov_text: str = create_markov_texts(detokenize=detokenize, sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer, text_to_toss=text_to_toss, names=names, stopwords=stopwords, state_size=state_size)
 
         if args.dry_run is not None and args.dry_run != True:
             response, session = create_note(api_key=bot_api_key, text=markov_text, visibility="home")
