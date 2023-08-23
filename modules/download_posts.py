@@ -159,8 +159,21 @@ class DownloadPosts:
             status: int = response.status_code
             notes: dict = response.json()
 
+            if status == 429:
+                logging.error(f"DownloadPosts hit rate limit... returning...")
+                return
+
+            if status == 403:
+                logging.error(f"DownloadPosts is unauthorized... returning...")
+                return
+
+            if status == 500:
+                logging.error(f"DownloadPosts hit server with internal error... returning...")
+                return
+
             if status != 200:
                 logging.warning(f"DownloadPosts status code is {status}...")
+                continue
 
             if len(notes) == 0:
                 loop: bool = False
