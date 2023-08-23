@@ -18,6 +18,9 @@ if __name__ == "__main__":
 
     STEPS: list = [
         {"module": modules.DownloadPosts, "settings": {"host": host, "api_key": api_key, "user_id": user_id}},
+        # Filter out unwanted posts here...
+        {"module": modules.RevertNyaizeText, "settings": {}},
+        {"module": modules.CleanText, "settings": {}}
     ]
 
     output = None
@@ -33,3 +36,4 @@ if __name__ == "__main__":
 
         # Run
         output = MODULE.run()
+    print(output)
