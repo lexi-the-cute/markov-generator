@@ -1,5 +1,7 @@
 # Generated Files
+__pycache__/
 /corpus.txt
+/corpus.csv
 /latest_id.txt
 
 # Venv
