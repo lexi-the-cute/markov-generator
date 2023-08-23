@@ -25,7 +25,7 @@ class DownloadPosts:
     setup: bool = False
     include_my_renotes: bool = False
     include_replies: bool = False
-    until_id: str = None
+    since_id: str = None
     processed_notes: int = 0
 
     def __init__(self):
@@ -83,10 +83,39 @@ class DownloadPosts:
 
         # Get Saved Latest ID If Exists
         if os.path.exists(self.tracker_file_path):
-            with open(file=tracker_file_path, mode="r") as f:
-                self.until_id: str = f.read().strip()
+            with open(file=self.tracker_file_path, mode="r") as f:
+                self.since_id: str = f.read().strip()
 
-        return self._update_corpus()
+        # Import Existing Notes
+        notes: list = []
+        if os.path.exists(self.file_path):
+            with open(file=self.file_path, mode="r") as f:
+                corpus: csv.reader = csv.reader(f)
+
+                first_loop: bool = True
+                for note in corpus:
+                    if first_loop:
+                        first_loop: bool = False
+                        continue
+
+                    notes.append({
+                        "text": note[0],
+                        "meta": json.loads(note[1])
+                    })
+
+        # Import New Notes
+        new_notes: list = []
+        for note in self._update_corpus():
+            new_notes.append(note)
+
+        # Combine New and Existing Notes
+        notes: list = notes + new_notes
+
+        # Save Latest ID
+        with open(file=self.tracker_file_path, mode="w") as f:
+            f.write(self.since_id)
+
+        return notes
 
     def _has_header(self):
         reader = open(file=self.file_path, mode="r")
@@ -106,8 +135,11 @@ class DownloadPosts:
             "includeReplies": self.include_replies
         }
 
-        if self.until_id is not None:
-            params["untilId"] = self.until_id
+        if self.since_id is not None:
+            params["sinceId"] = self.since_id
+        else:
+            # To force loading from beginning
+            params["sinceId"] = "0"
 
         return self.session.post(url=base_url, json=params)
 
@@ -134,7 +166,7 @@ class DownloadPosts:
                 loop: bool = False
 
             for note in notes:
-                self.until_id: str = note["id"]
+                self.since_id: str = note["id"]
 
                 meta: dict = {
                     "visibility": note["visibility"],
@@ -150,3 +182,8 @@ class DownloadPosts:
 
                 self.processed_notes += 1
                 corpus.writerow([note["text"], json.dumps(meta)])
+
+                yield {
+                    "text": note["text"],
+                    "meta": meta
+                }
