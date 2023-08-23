@@ -3,4 +3,5 @@ from .filter_notes import FilterNotes
 from .nyaize_transform import NyaizeText, RevertNyaizeText
 from .clean_transform import CleanText
 # Markov stuff here
+from .normalize_transform import NormalizeText
 from .post_notes import PostNotes

@@ -13,129 +13,6 @@ import markovify
 from nltk.sentiment import SentimentIntensityAnalyzer
 from mosestokenizer import MosesDetokenizer
 
-def create_note(api_key: str, text: str, content_warning: str = "markov generated post", visibility: str = "followers", session: requests.Session = requests.Session()):
-    # Validate text
-    if text is None:
-        text: str = ""
-
-    base_url: str = "https://catgirl.land/api/notes/create"
-
-    params: dict = {
-        "i": api_key,
-        "text": text,
-        "cw": content_warning,
-        "visibility": visibility
-    }
-
-    response: requests.Response = session.post(url=base_url, json=params)
-    return response, session
-
-def get_notes(api_key: str, user_id: str, until_id: str = None, limit: int = 100, session: requests.Session = requests.Session()):
-    base_url: str = "https://catgirl.land/api/users/notes"
-
-    # select text from note where "userId" = '9h5znfmoxj3nldm4' and "renoteId" is null and "replyId" is null and mentions = '{}'; 
-    params: dict = {
-        "i": api_key,
-        "userId": user_id,
-        "includeMyRenotes": False,
-        "includeReplies": False,
-        "limit": limit
-    }
-
-    if until_id is not None:
-        params["untilId"] = until_id
-
-    response: requests.Response = session.post(url=base_url, json=params)
-    return response, session
-
-def update_corpus(api_key: str, user_id: str, until_id: str = None, limit: int = 100, text_to_toss: list[str] = [], corpus_path: str = "corpus.txt"):
-    corpus = open(file=corpus_path, mode="a")
-
-    # Setup Session
-    session: requests.Session = requests.Session()
-    pattern: re.Pattern = re.compile(pattern=r"(@)([A-Za-z0-9_]+@[A-Za-z0-9_.]+)\w+")
-
-    count: int = 0
-    loop: bool = True
-    while loop:
-        response, session = get_notes(api_key=api_key, user_id=user_id, until_id=until_id, session=session)
-
-        status = response.status_code
-        results = response.json()
-
-        if status != 200:
-            print(f"get_notes(...) status code is {status}... exiting...")
-            exit(1)
-        
-        # print(f"Results: {len(results)}")
-        if len(results) <= 0:
-            loop: bool = False
-
-        print(f"{humanize.intcomma(count)} notes processed....")
-        for note in results:
-            until_id: str = note['id']
-
-            # "public" "home" "followers" "specified" "hidden"
-            # We don't want to process private notes
-            if note["visibility"] == "specified" or note["visibility"] == "hidden":
-                # print(note["text"])
-                continue
-
-            # We don't want to handle renotes
-            if note["renoteId"] is not None:
-                continue
-
-            # We don't want to handle replies
-            if note["replyId"] is not None:
-                continue
-
-            # Filter out more serious notes
-            if note["cw"] is not None:
-                continue
-
-            # We don't want to handle mentions
-            if "mentions" in note and len(note["mentions"]) > 0:
-                continue
-
-            # We don't want to process notes with ZWS in them (e.g. MiCECo)
-            if "\u200B" in note["text"]:
-                # print(note["text"])
-                continue
-
-            # We want to be sure to sanitize out mentions
-            if re.search(pattern, note["text"]) is not None:
-                # print(note["text"])
-                continue
-
-            # Toss text which shouldn't be included at all
-            if get_should_toss_text(text=note["text"], text_to_toss=text_to_toss):
-                # print(note["text"])
-                continue
-
-            # Revert nyaized text
-            text: str = get_reverted_nyaized_text(text=note["text"].strip())
-
-            # Clean text
-            text: str = get_cleaned_text(text=text)
-            text: str = f"{text}\n"
-
-            # Split text for model
-            text_split_len: int = 512
-            split: list = [text[i:i+text_split_len] for i in range(0, len(text), text_split_len)]
-            
-            # Process text
-            text: str = ""
-            for piece in split:
-                text: str = text + get_processed_text(doc=nlp(piece))
-
-            # Write corpus
-            corpus.write(f"{text}\n")
-        
-            # Count number of notes processed
-            count += 1
-
-    return until_id
-
 def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: SentimentIntensityAnalyzer, text_to_toss: list[str] = [], names: list[str] = [], stopwords: list[str] = [], sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, reject_pattern: str = r"(^`)|(`$)|\s`|`\s|(^')|('$)|\s'|'\s|[\"(\(\)\[\])]", corpus_path: str = "corpus.txt"):
     corpus_file_size: int = os.path.getsize(corpus_path)
 
@@ -190,77 +67,6 @@ def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: Sentim
     # Generate the text
     return text
 
-def get_reverted_nyaized_text(text: str):
-    # Validate text
-    if text is None:
-        text: str = ""
-
-    text: str = re.sub(pattern=r"(nyan)(?=[bcdfghjklmnpqrstvwxyz])", repl="non", string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = re.sub(pattern=r"(?<=every)(nyan)", repl="one", string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = re.sub(pattern=r"(?<=morn)(yan)", repl="ing", string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = re.sub(pattern=r"(?<=n)(ya)", repl="a", string=text, flags=re.IGNORECASE|re.MULTILINE)
-
-    return text
-
-def get_nyaized_text(text: str):
-    # Validate text
-    if text is None:
-        text: str = ""
-
-    text: str = re.sub(pattern=r"(?<=n)(a)", repl="ya", string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = re.sub(pattern=r"(?<=morn)(ing)", repl="yan", string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = re.sub(pattern=r"(?<=every)(one)", repl="nyan", string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = re.sub(pattern=r"(non)(?=[bcdfghjklmnpqrstvwxyz])", repl="nyan", string=text, flags=re.IGNORECASE|re.MULTILINE)
-
-    return text
-
-def get_cleaned_text(text: str):
-    # Validate text
-    if text is None:
-        text: str = ""
-
-    text: str = text.strip()
-    text: str = re.sub(pattern=r'\[.*\]\(http.+\)', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = re.sub(pattern=r'http\S+', repl='', string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = text.replace("UwU UwU", "UwU")
-    text: str = text.replace("* * ", "")
-
-    return text
-
-def get_normalized_text(text: str, names: list[str] = []):
-    # Validate text
-    if text is None:
-        text: str = ""
-
-    text: str = text.capitalize()
-    text: str = text.replace("Hmmmmmmm", "hmmmmmmm...")
-    text: str = text.replace(" uwu ", " UwU ")
-    text: str = text.replace(" owo ", " OwO ")
-    text: str = re.sub(pattern=r'(\s)i(\W)', repl=r'\1I\2', string=text, flags=re.IGNORECASE|re.MULTILINE)
-    text: str = re.sub(pattern=r'\.(\s)(\w)', repl=lambda m: f".{m.group(1)}{m.group(2).upper()}", string=text, flags=re.IGNORECASE|re.MULTILINE)
-    
-    for name in names:
-        text: str = text.replace(f" {name.lower()}", f" {name.capitalize()}")
-
-    return text
-
-def get_should_toss_text(text: str, text_to_toss: list[str] = []):
-    # Validate text
-    if text is None:
-        text: str = ""
-
-    # Pull out all toss words
-    # toss_words: list[str] = [w for w in nltk.word_tokenize(text) if w.lower() in text_to_toss]
-
-    # Check if toss word in text
-    for w in text.split():
-        for toss_word in text_to_toss:
-            if toss_word.lower() in w.lower():
-                # print(f"W: `{w}` - Toss Word: `{toss_word}`")
-                return True
-
-    return False
-
 def remove_stopwords(text: str, detokenize: MosesDetokenizer, stopwords: list[str] = []):
     # Validate text
     if text is None:
@@ -304,15 +110,6 @@ def get_sentiment(text: str, sid: SentimentIntensityAnalyzer):
     negative: float = round((score['neg'] * 10), 2)
 
     return positive, negative
-
-# Built in boolean parsing does not work as expected, so use this custom parser instead
-def parse_boolean_from_string(string: str):
-    if string.lower() in ('yes', 'true', 't', 'y', '1'):
-        return True
-    elif string.lower() in ('no', 'false', 'f', 'n', '0'):
-        return False
-    else:
-        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 if __name__ == "__main__":
     argParser: argparse.ArgumentParser = argparse.ArgumentParser()
@@ -429,24 +226,6 @@ if __name__ == "__main__":
         'lie': -0.5    # Shows up way too much, and negative
     }
 
-    custom_names: list[str] = [
-        "becky",
-        "prim",
-        "mastodon",
-        "alexis",
-        "mia",
-        "firefish",
-        "iceshrimp",
-        "misskey",
-        "akkoma",
-        "pleroma",
-        "pixelfed",
-        "hometown",
-        "calckey",
-        "foundkey",
-        "lemmy"
-    ]
-
     # Download PUNKT lexicon for sentiment analysis
     # PUNKT is designed for removing tokenizing words
     try:
@@ -491,40 +270,3 @@ if __name__ == "__main__":
 
     # Initialize detokenizer
     detokenize: MosesDetokenizer = MosesDetokenizer('en')
-
-    # Initialize Text To Toss List
-    text_to_toss: list = [
-     "nagifur", "donate", "paid", "u.s", "cmakecache.txt",
-     "cpu", "chatgpt", "perception of me", "twitter",
-     ".actor@", "..onion", "urls:", "digitalocean"
-    ]
-
-    # Get Saved Latest ID If Exists
-    if os.path.exists(id_tracker_path):
-        with open(file=id_tracker_path, mode="r") as f:
-            human_until_id: str = f.read().strip()
-
-    # Update Corpus
-    until_id: str = update_corpus(api_key=human_api_key, user_id=human_user_id, until_id=human_until_id, text_to_toss=text_to_toss)
-
-    # Save Latest ID
-    with open(file=id_tracker_path, mode="w") as f:
-        f.write(until_id)
-
-    # TODO: Check if corpus is empty and display fatal error!
-
-    # Generate Markov Posts
-    count = 0
-    while count < num_notes:
-        markov_text: str = create_markov_texts(detokenize=detokenize, sentiment_score_minimum=sentiment_score_minimum, sentiment_analyzer=sentiment_analyzer, text_to_toss=text_to_toss, names=names, stopwords=stopwords, state_size=state_size)
-
-        if args.dry_run is not None and args.dry_run != True:
-            response, session = create_note(api_key=bot_api_key, text=markov_text, visibility="home")
-
-            # Display post
-            print(f"Generated note: `{markov_text}`")
-        else:
-            # Display dry run
-            print(f"Dry run... Generated note: `{markov_text}`")
-
-        count += 1

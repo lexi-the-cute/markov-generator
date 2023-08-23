@@ -46,13 +46,8 @@ class CleanText:
             if "text" not in note:
                 continue
 
-            if "meta" not in note:
-                continue
-
-            notes.append({
-                "text": self._get_cleaned_text(text=note["text"]),
-                "meta": note["meta"]
-            })
+            note["text"] = self._get_cleaned_text(text=note["text"])
+            notes.append(note)
 
         return notes
 

@@ -83,30 +83,24 @@ class PostNotes:
             if "text" not in note:
                 continue
 
-            if "meta" not in note:
-                continue
-
             response: requests.Response = self._post_note(text=note["text"])
 
-            notes.append({
-                "text": note["text"],
-                "meta": note["meta"],
-                "response": response
-            })
+            note["response"] = response
+            notes.append(note)
 
             if response is not None and response.status_code == 429:
                 logging.error(f"PostNotes hit rate limit... returning...")
                 return
 
-            if response is not None and status == 403:
+            if response is not None and response.status_code == 403:
                 logging.error(f"PostNotes is unauthorized... returning...")
                 return
 
-            if response is not None and status == 500:
+            if response is not None and response.status_code == 500:
                 logging.error(f"PostNotes hit server with internal error... returning...")
                 return
 
-            if response is not None and status != 200:
+            if response is not None and response.status_code != 200:
                 logging.warning(f"PostNotes status code is {status}...")
 
         return notes
@@ -123,9 +117,9 @@ class PostNotes:
         base_url: str = f"{self.host}/api/notes/create"
 
         params: dict = {
-            "i": api_key,
+            "i": self.api_key,
             "text": text,
-            "visibility": visibility
+            "visibility": self.visibility
         }
 
         # Add Content Warning

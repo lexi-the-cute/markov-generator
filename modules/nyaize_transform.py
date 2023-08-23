@@ -6,7 +6,7 @@ class NyaizeText:
     input: object = None
 
     # Non-Configurable
-    banyanya_pattern: re.Pattern = re.compile(pattern=r"(?<=n)(a)", flags=re.IGNORECASE|re.MULTILINE)  # banyanya
+    snyack_pattern: re.Pattern = re.compile(pattern=r"(?<=n)(a)", flags=re.IGNORECASE|re.MULTILINE)  # snyack
     mornyan_pattern: re.Pattern = re.compile(pattern=r"(?<=morn)(ing)", flags=re.IGNORECASE|re.MULTILINE)  # mornyan
     everynyan_pattern: re.Pattern = re.compile(pattern=r"(?<=every)(one)", flags=re.IGNORECASE|re.MULTILINE)  # everynyan
     nyansense_pattern: re.Pattern = re.compile(pattern=r"(non)(?=[bcdfghjklmnpqrstvwxyz])", flags=re.IGNORECASE|re.MULTILINE)  # nyansense
@@ -48,13 +48,8 @@ class NyaizeText:
             if "text" not in note:
                 continue
 
-            if "meta" not in note:
-                continue
-
-            notes.append({
-                "text": self._get_nyaized_text(text=note["text"]),
-                "meta": note["meta"]
-            })
+            note["text"] = self._get_nyaized_text(text=note["text"])
+            notes.append(note)
 
         return notes
 
@@ -63,7 +58,7 @@ class NyaizeText:
         if text is None:
             text: str = ""
 
-        text: str = re.sub(pattern=self.banyanya_pattern, repl="ya", string=text)
+        text: str = re.sub(pattern=self.snyack_pattern, repl="ya", string=text)
         text: str = re.sub(pattern=self.mornyan_pattern, repl="yan", string=text)
         text: str = re.sub(pattern=self.everynyan_pattern, repl="nyan", string=text)
         text: str = re.sub(pattern=self.nyansense_pattern, repl="nyan", string=text)
@@ -75,10 +70,11 @@ class RevertNyaizeText:
     input: object = None
 
     # Non-Configurable
+    banana_pattern: re.Pattern = re.compile(pattern=r"(?<=n)(yanya)", flags=re.IGNORECASE|re.MULTILINE)  # banana
     nonsense_pattern: re.Pattern = re.compile(pattern=r"(nyan)(?=[bcdfghjklmnpqrstvwxyz])", flags=re.IGNORECASE|re.MULTILINE)  # nonsense
     everyone_pattern: re.Pattern = re.compile(pattern=r"(?<=every)(nyan)", flags=re.IGNORECASE|re.MULTILINE)  # everyone
     morning_pattern: re.Pattern = re.compile(pattern=r"(?<=morn)(yan)", flags=re.IGNORECASE|re.MULTILINE)  # morning
-    banana_pattern: re.Pattern = re.compile(pattern=r"(?<=n)(ya)", flags=re.IGNORECASE|re.MULTILINE)  # banana
+    snack_pattern: re.Pattern = re.compile(pattern=r"(?<=n)(ya)", flags=re.IGNORECASE|re.MULTILINE)  # snack
 
     def __init__(self):
         """
@@ -117,13 +113,8 @@ class RevertNyaizeText:
             if "text" not in note:
                 continue
 
-            if "meta" not in note:
-                continue
-
-            notes.append({
-                "text": self._get_reverted_nyaized_text(text=note["text"]),
-                "meta": note["meta"]
-            })
+            note["text"] = self._get_reverted_nyaized_text(text=note["text"])
+            notes.append(note)
 
         return notes
 
@@ -132,9 +123,10 @@ class RevertNyaizeText:
         if text is None:
             text: str = ""
 
+        text: str = re.sub(pattern=self.banana_pattern, repl="ana", string=text)
         text: str = re.sub(pattern=self.nonsense_pattern, repl="non", string=text)
         text: str = re.sub(pattern=self.everyone_pattern, repl="one", string=text)
         text: str = re.sub(pattern=self.morning_pattern, repl="ing", string=text)
-        text: str = re.sub(pattern=self.banana_pattern, repl="a", string=text)
+        text: str = re.sub(pattern=self.snack_pattern, repl="a", string=text)
 
         return text
