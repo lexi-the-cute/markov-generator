@@ -91,6 +91,3 @@ if __name__ == "__main__":
 
         # Run
         output = MODULE.run()
-
-    # TODO: Remove Print
-    # print(output)
