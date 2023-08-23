@@ -25,6 +25,8 @@ class DownloadPosts:
     setup: bool = False
     include_my_renotes: bool = False
     include_replies: bool = False
+    include_files: bool = False
+    include_nsfw: bool = False
     since_id: str = None
     processed_notes: int = 0
 
@@ -132,7 +134,9 @@ class DownloadPosts:
             "userId": self.user_id,
             "limit": self.limit,
             "includeMyRenotes": self.include_my_renotes,
-            "includeReplies": self.include_replies
+            "includeReplies": self.include_replies,
+            "withFiles": self.include_files,
+            "excludeNsfw": not self.include_nsfw,
         }
 
         if self.since_id is not None:
