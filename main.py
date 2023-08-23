@@ -11,12 +11,18 @@ class ChatBot:
         pass
 
 if __name__ == "__main__":
-    # Download Posts Settings
-    host: str = "https://catgirl.land"
-    api_key: str = "REDACTED"
+    # Download Notes Settings
+    download_host: str = "https://catgirl.land"
+    download_api_key: str = "REDACTED"
     user_id: str = "9h5znfmoxj3nldm4"
 
-    # Filter Posts Settings
+    # Post Notes Settings
+    post_host: str = "https://catgirl.land"
+    post_api_key: str = "REDACTED"
+    content_warning: str = "markov generated post"
+    dry_run: bool = True
+
+    # Filter Notes Settings
     toss_text: list = [
         "nagifur", "donate", "paid", "u.s", "cmakecache.txt",
         "cpu", "chatgpt", "perception of me", "twitter",
@@ -24,10 +30,12 @@ if __name__ == "__main__":
     ]
 
     STEPS: list = [
-        {"module": modules.DownloadPosts, "settings": {"host": host, "api_key": api_key, "user_id": user_id}},
-        {"module": modules.FilterPosts, "settings": {"toss_text": toss_text}},
+        {"module": modules.DownloadNotes, "settings": {"host": download_host, "api_key": download_api_key, "user_id": user_id}},
+        {"module": modules.FilterNotes, "settings": {"toss_text": toss_text}},
         {"module": modules.RevertNyaizeText, "settings": {}},
-        {"module": modules.CleanText, "settings": {}}
+        {"module": modules.CleanText, "settings": {}},
+        # TODO: Markov stuff here...
+        {"module": modules.PostNotes, "settings": {"host": post_host, "api_key": post_api_key, "content_warning": content_warning, "dry_run": dry_run}}
     ]
 
     output = None

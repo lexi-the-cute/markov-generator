@@ -1,7 +1,7 @@
 import re
 # import logging
 
-class FilterPosts:
+class FilterNotes:
     # Required
     input: object = None
     toss_text: list = None
@@ -48,7 +48,7 @@ class FilterPosts:
         """
 
         if not self.setup:
-            logging.error("FilterPosts module not configured...")
+            logging.error("FilterNotes module not configured...")
             return
 
         if type(self.input) is str:
