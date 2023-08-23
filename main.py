@@ -75,6 +75,7 @@ if __name__ == "__main__":
         {"module": modules.CleanText, "settings": {}},
         # TODO: Gibberish text stuff here... (https://catgirl.land/notes/9iqfxd9wok9h5myh)
         {"module": modules.NyaizeText, "settings": {}},
+        # TODO: Add a processing tag to each note on each module, then convert to hashtags here
         {"module": modules.PostNotes, "settings": {"host": post_host, "api_key": post_api_key, "content_warning": content_warning, "dry_run": dry_run}}
     ]
 
