@@ -80,7 +80,7 @@ if __name__ == "__main__":
         {"module": modules.RevertNyaizeText, "settings": {}},
         {"module": modules.CleanText, "settings": {}},
         {"module": modules.GenerateMarkov, "settings": {}},
-        # TODO: Add Rebuild text module
+        {"module": modules.RebuildText, "settings": {}},
         {"module": modules.NormalizeText, "settings": {}},
         {"module": modules.CleanText, "settings": {}},
         {"module": modules.GibberishText, "settings": {}},
