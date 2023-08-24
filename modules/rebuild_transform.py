@@ -8,6 +8,7 @@ except ImportError:
 try:
     from mosestokenizer import MosesDetokenizer
 except ImportError:
+    # Look at opus-fast-mosestokenizer
     raise ImportError("Failed to import mosestokenizer, please run `pip3 install mosestokenizer`")
 
 class RebuildText:
