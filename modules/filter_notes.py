@@ -19,6 +19,8 @@ class FilterNotes:
     banned_mentions: bool = True
     banned_zws: bool = True
     logger: logging.Logger = None
+    LESSERDEBUG: int = 15
+    VERBOSE: int = 5
 
     def __init__(self):
         """
@@ -150,7 +152,7 @@ class FilterNotes:
         for w in text.split():
             for toss_word in self.toss_text:
                 if toss_word.lower() in w.lower():
-                    # self.logger.debug(f"W: `{w}` - Toss Word: `{toss_word}`")
+                    # self.logger.log(level=self.VERBOSE, msg=f"W: `{w}` - Toss Word: `{toss_word}`")
                     return True
 
         return False

@@ -14,6 +14,8 @@ class NyaizeText:
     everynyan_pattern: re.Pattern = re.compile(pattern=r"(?<=every)(one)", flags=re.IGNORECASE|re.MULTILINE)  # everynyan
     nyansense_pattern: re.Pattern = re.compile(pattern=r"(non)(?=[bcdfghjklmnpqrstvwxyz])", flags=re.IGNORECASE|re.MULTILINE)  # nyansense
     logger: logging.Logger = None
+    LESSERDEBUG: int = 15
+    VERBOSE: int = 5
 
     def __init__(self):
         """

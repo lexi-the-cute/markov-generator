@@ -20,6 +20,8 @@ class PostNotes:
     # Non-Configurable
     setup: bool = False
     logger: logging.Logger = None
+    LESSERDEBUG: int = 15
+    VERBOSE: int = 5
 
     def __init__(self):
         """
@@ -114,7 +116,7 @@ class PostNotes:
             text: str = ""
 
         if self.dry_run:
-            self.logger.debug(f"Dry run: `{text}`")
+            self.logger.log(level=self.VERBOSE, msg=f"Dry run: `{text}`")
             return
 
         base_url: str = f"{self.host}/api/notes/create"

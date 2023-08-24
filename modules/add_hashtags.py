@@ -10,6 +10,8 @@ class AddHashtags:
 
     # Non-Configurable
     logger: logging.Logger = None
+    LESSERDEBUG: int = 15
+    VERBOSE: int = 5
 
     def __init__(self):
         """
@@ -89,6 +91,6 @@ class AddHashtags:
             if "show" in tag and tag["show"] == True:
                 text = text.strip() + f" #{tag['name']}"
 
-        # self.logger.debug(f"Text: `{text}`, Tags: `{tags}`")
+        # self.logger.log(level=self.VERBOSE, msg=f"Text: `{text}`, Tags: `{tags}`")
 
         return text

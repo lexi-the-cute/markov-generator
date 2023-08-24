@@ -29,6 +29,8 @@ class NormalizeText:
     capitalize_i_pattern: re.Pattern = re.compile(pattern=r'(\s)i(\W)', flags=re.IGNORECASE|re.MULTILINE)
     capitalize_sentence_pattern: re.Pattern = re.compile(pattern=r'[.!?]([\s\n]*)(\w)', flags=re.IGNORECASE|re.MULTILINE)
     logger: logging.Logger = None
+    LESSERDEBUG: int = 15
+    VERBOSE: int = 5
 
     def __init__(self):
         """

@@ -2,7 +2,9 @@ import os
 import logging
 
 # Setup Logger
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
+LESSERDEBUG: int = 15  # Debug is 10
+VERBOSE: int = 5
 
 try:
     import coloredlogs
@@ -41,8 +43,12 @@ def parse_level_from_string(string: str):
         return logging.WARNING
     elif string.lower() in ('info', 'information'):
         return logging.INFO
+    elif string.lower() in ('minidebug', 'lowerdebug', 'lesserdebug'):
+        return LESSERDEBUG
     elif string.lower() in ('debug'):
         return logging.DEBUG
+    elif string.lower() in ('verbose'):
+        return VERBOSE
     else:
         return logging.NOTSET
 

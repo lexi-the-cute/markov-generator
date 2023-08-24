@@ -10,6 +10,8 @@ class GibberishText:
 
     # Non-Configurable
     logger: logging.Logger = None
+    LESSERDEBUG: int = 15
+    VERBOSE: int = 5
 
     def __init__(self):
         """

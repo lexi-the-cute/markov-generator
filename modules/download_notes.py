@@ -31,6 +31,8 @@ class DownloadNotes:
     since_id: str = None
     processed_notes: int = 0
     logger: logging.Logger = None
+    LESSERDEBUG: int = 15
+    VERBOSE: int = 5
 
     def __init__(self):
         """
