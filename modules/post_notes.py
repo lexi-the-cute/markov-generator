@@ -14,7 +14,7 @@ class PostNotes:
     # Default
     dry_run: bool = True
     content_warning: str = None
-    visibility: str = "followers"
+    visibility: str = "home"  # public, home, followers, specified, hidden
     session: requests.Session = requests.Session()
 
     # Non-Configurable

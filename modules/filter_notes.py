@@ -12,7 +12,7 @@ class FilterNotes:
 
     # Non-Configurable
     setup: bool = False
-    banned_visibilities: list = ["specified", "hidden"]
+    banned_visibilities: list = ["specified", "hidden"]  # public, home, followers, specified, hidden
     banned_renote: bool = True
     banned_reply: bool = True
     banned_cw: bool = True
@@ -109,7 +109,6 @@ class FilterNotes:
         if meta is None:
             meta: dict = {}
 
-        # "public" "home" "followers" "specified" "hidden"
         # We don't want to process private notes
         if "visibility" in meta:
             for banned_visibility in self.banned_visibilities:
