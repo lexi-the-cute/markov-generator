@@ -83,7 +83,8 @@ if __name__ == "__main__":
         {"module": modules.RebuildText, "settings": {}},
         {"module": modules.NormalizeText, "settings": {}},
         {"module": modules.CleanText, "settings": {}},
-        {"module": modules.GibberishText, "settings": {}},
+        {"module": modules.GibberishText, "settings": {"chance_execute": 0.5}},
+        {"module": modules.NormalizeText, "settings": {}},
         {"module": modules.NyaizeText, "settings": {}},
         {"module": modules.AddHashtags, "settings": {}},
         {"module": modules.PostNotes, "settings": {"host": post_host, "api_key": post_api_key, "content_warning": content_warning, "dry_run": dry_run}}

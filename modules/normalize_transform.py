@@ -28,6 +28,7 @@ class NormalizeText:
     # Non-Configurable
     capitalize_i_pattern: re.Pattern = re.compile(pattern=r'(\s)i(\W)', flags=re.IGNORECASE|re.MULTILINE)
     capitalize_sentence_pattern: re.Pattern = re.compile(pattern=r'[.!?]([\s\n]*)(\w)', flags=re.IGNORECASE|re.MULTILINE)
+    ending_punctuation_pattern: re.Pattern = re.compile(pattern=r'\s([,.?;:\-)\]>]+)', flags=re.MULTILINE)
     logger: logging.Logger = None
     LESSERDEBUG: int = 15
     VERBOSE: int = 5
@@ -103,6 +104,9 @@ class NormalizeText:
         text: str = text.replace("Hmmmmmmm", "hmmmmmmm...")
         text: str = text.replace(" uwu ", " UwU ")
         text: str = text.replace(" owo ", " OwO ")
+        text: str = text.replace(" ii ", " II ")
+        text: str = text.replace(" iii ", " III ")
+        text: str = re.sub(pattern=self.ending_punctuation_pattern, repl=lambda m: m.group(1), string=text)
         text: str = re.sub(pattern=self.capitalize_i_pattern, repl=r'\1I\2', string=text)
         text: str = re.sub(pattern=self.capitalize_sentence_pattern, repl=lambda m: f".{m.group(1)}{m.group(2).upper()}", string=text)
         

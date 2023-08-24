@@ -18,6 +18,7 @@ class RebuildText:
     # Default
     show_tag: bool = False
     detokenizer_language: str = "en"
+    tokenizer_language: str = "english"
 
     # Non-Configurable
     nltk_tokenizer_lexicon: str = "punkt"
@@ -45,12 +46,15 @@ class RebuildText:
         if "detokenizer_language" in settings:
             self.detokenizer_language = settings["detokenizer_language"]
 
+        if "tokenizer_language" in settings:
+            self.tokenizer_language = settings["tokenizer_language"]
+
         # Download PUNKT lexicon for rebuilding sentences
         # PUNKT is designed for tokenizing words
         try:
             nltk.data.find(self.nltk_tokenizer_lexicon_path)
         except LookupError:
-            print(f"Failed to find {self.nltk_tokenizer_lexicon}. Downloading for you...")
+            self.logger.log(level=self.LESSERDEBUG, msg="Failed to find {self.nltk_tokenizer_lexicon}. Downloading for you...")
             nltk.download(self.nltk_tokenizer_lexicon)
 
         self.detokenizer: MosesDetokenizer = MosesDetokenizer(self.detokenizer_language)
@@ -105,9 +109,9 @@ class RebuildText:
             text: str = ""
 
         sentences: list[str] = []
-        for sentence in nltk.sent_tokenize(text):
-            # words: list[str] = nltk.word_tokenize(sentence)
-            words: list[str] = sentence.split()
+        for sentence in nltk.sent_tokenize(text=text, language=self.tokenizer_language):
+            words: list[str] = nltk.word_tokenize(sentence)
+            # words: list[str] = sentence.split()
             sentence: str = self.detokenizer(words)
 
             sentences.append(sentence)

@@ -1,3 +1,5 @@
+import re
+import random
 import logging
 
 try:
@@ -6,27 +8,30 @@ except ImportError:
     raise ImportError("Failed to import nltk, please run `pip3 install nltk`")
 
 try:
-    from nltk.corpus import cmudict
+    # This was designed for spanish, but seems to mostly work on english from what I've tested
+    import pylabeador
 except ImportError:
-    raise ImportError("Failed to import nltk.corpus.cmudict, please run `pip3 install nltk`")
+    raise ImportError("Failed to import pylabeador, please run `pip3 install pylabeador`")
+
+try:
+    from pylabeador.errors import HyphenatorError
+except ImportError:
+    raise ImportError("Failed to import pylabeador.errors.HyphenatorError, please run `pip3 install pylabeador`")   
 
 class GibberishText:
     # Required
     input: object = None
 
     # Default
-    nltk_pronunciation_lexicon: str = "cmudict"  # Carnegie Mellon University Pronunciation Dictionary
-    nltk_pronunciation_lexicon_path: str = "corpora/cmudict"
+    chance_execute: float = 1.0
     show_tag: bool = True
-    pronunciation_dictionary: dict = {
-        "pronounciation": [
-            "P R OW0 N AW0 N S IY0 EY1 SH AH0 N",
-            "P R AH0 N AW0 N S IY0 EY1 SH AH0 N"
-        ]
-    }
+    tokenizer_language: str = "english"
+    word_pattern: re.Pattern = re.compile(pattern=r'^[a-zñáéíóúü]+$', flags=re.IGNORECASE|re.MULTILINE)
+    vowels: list = ["a", "e", "i", "o", "u"]
 
     # Non-Configurable
-    cdict: dict = {}
+    nltk_tokenizer_lexicon: str = "punkt"
+    nltk_tokenizer_lexicon_path: str = "tokenizers/punkt"
     logger: logging.Logger = None
     LESSERDEBUG: int = 15
     VERBOSE: int = 5
@@ -46,15 +51,25 @@ class GibberishText:
         if "show_tag" in settings:
             self.show_tag = settings["show_tag"]
 
-        # Download Carnegie Mellon University Pronunciation Dictionary for Syllable analysis
-        # CMUDict is designed for analyzing syllables and pronunciation
-        try:
-            nltk.data.find(self.nltk_pronunciation_lexicon_path)
-        except LookupError:
-            print(f"Failed to find {self.nltk_pronunciation_lexicon}. Downloading for you...")
-            nltk.download(self.nltk_pronunciation_lexicon)
+        if "tokenizer_language" in settings:
+            self.tokenizer_language = settings["tokenizer_language"]
 
-        self.cdict: dict = cmudict.dict()
+        if "word_pattern" in settings:
+            self.word_pattern = settings["word_pattern"]
+
+        if "vowels" in settings:
+            self.vowels = settings["vowels"]
+
+        if "chance_execute" in settings:
+            self.chance_execute = settings["chance_execute"]
+
+        # Download PUNKT lexicon for rebuilding sentences
+        # PUNKT is designed for tokenizing words
+        try:
+            nltk.data.find(self.nltk_tokenizer_lexicon_path)
+        except LookupError:
+            self.logger.log(level=self.LESSERDEBUG, msg=f"Failed to find {self.nltk_tokenizer_lexicon}. Downloading for you...")
+            nltk.download(self.nltk_tokenizer_lexicon)
 
     def set_input(self, input: object):
         """
@@ -67,6 +82,11 @@ class GibberishText:
         """
             Execute this module as part of a chain of modules
         """
+
+        # Gives probability of executing module
+        if self.chance_execute < random.random():
+            self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping gibberishifying notes...")
+            return self.input
 
         self.logger.info("Gibberishifying notes...")
 
@@ -89,6 +109,8 @@ class GibberishText:
             }
 
             text: str = self._get_gibberishified_text(text=note["text"])
+            if text is False:
+                text: str = note["text"]
 
             # If modification did not take effect, then remove tag
             if self.show_tag and note["text"] == text:
@@ -100,34 +122,57 @@ class GibberishText:
 
         return notes
 
-    def _get_syllables(self, word: str):
-        pronunciation_dictionary: dict = self.cdict | self.pronunciation_dictionary
-
-        if word.lower() not in pronunciation_dictionary:
-            self.logger.error(msg=f"Could not find the word, {word.lower()}, in the pronunciation lexicon...")
+    def _get_gibberishified_word_from_syllables(self, syllables: list):
+        if len(syllables) == 0:
             return
 
-        desired_syllables: list = []
-        for syllables in pronunciation_dictionary[word.lower()]:
-            numbered_syllables: list = []
-            for syllable in syllables:
-                if syllable[-1].isdigit():  # -1 means seek from end
-                    numbered_syllables.append(syllable)
+        word: list = []
+        for syllable in syllables:
+            count: int = -1
+            for character in syllable:
+                count += 1
+                if character in self.vowels:
+                    break
+            
+            syllable = syllable[:count] + "othag" + syllable[count:].lower()
+            word.append(syllable)
 
-            desired_syllables.append(numbered_syllables)
+        word: str = ''.join(word)
+        if syllables[0][0] == syllables[0][0].upper():
+            word: str = word[0].upper() + word[1:]
 
-        syllable_count: list = []
-        for syllables in desired_syllables:
-            syllable_count.append(len(syllables))
-
-        print(syllable_count)
+        return word
 
     def _get_gibberishified_text(self, text: str):
         # Validate text
         if text is None:
             text: str = ""
 
-        # https://catgirl.land/notes/9iqfxd9wok9h5myh
-        # ...
+        sentences: list[str] = []
+        for sentence in nltk.sent_tokenize(text=text, language=self.tokenizer_language):
+            # Breaks on `I'm` or `Cute!`
+            words: list[str] = nltk.word_tokenize(text=sentence, language=self.tokenizer_language)
+            # words: list[str] = sentence.split()
 
-        self._get_syllables(word="Dictionary")
+            word_pos: int = 0
+            for word in words:
+                if self.word_pattern.match(string=word):
+                    # Breaks on `everything`
+                    try:
+                        syllables: list = pylabeador.syllabify(word)
+                    except HyphenatorError as e:
+                        self.logger.error(msg=f"pylabeador couldn't handle the word, `{e.word}`. Skipping gibberishifying this text...")
+                        return False
+
+                    word: str = self._get_gibberishified_word_from_syllables(syllables=syllables)
+                elif any(c.isalpha() for c in word):
+                    # When a word contains both letters and something else
+                    self.logger.log(level=self.LESSERDEBUG, msg=f"The word, `{word}`, contains characters which can't be processed right now. Skipping gibberishifying this text...")
+                    return False
+
+                words[word_pos] = word
+                word_pos += 1
+            sentences += words
+
+        self.logger.log(level=self.VERBOSE, msg=f"Original: `{text}`, Gibberishified: `{' '.join(sentences)}`")
+        return ' '.join(sentences)

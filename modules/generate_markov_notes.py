@@ -125,7 +125,7 @@ class GenerateMarkov:
         try:
             nltk.data.find(self.nltk_sentiment_lexicon_path)
         except LookupError:
-            print(f"Failed to find {self.nltk_sentiment_lexicon}. Downloading for you...")
+            self.logger.log(level=self.LESSERDEBUG, msg=f"Failed to find {self.nltk_sentiment_lexicon}. Downloading for you...")
             nltk.download(self.nltk_sentiment_lexicon)
 
         # Initialize Sentiment Analyzer
