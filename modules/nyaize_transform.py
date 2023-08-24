@@ -1,5 +1,5 @@
 import re
-# import logging
+import logging
 
 class NyaizeText:
     # Required
@@ -13,13 +13,14 @@ class NyaizeText:
     mornyan_pattern: re.Pattern = re.compile(pattern=r"(?<=morn)(ing)", flags=re.IGNORECASE|re.MULTILINE)  # mornyan
     everynyan_pattern: re.Pattern = re.compile(pattern=r"(?<=every)(one)", flags=re.IGNORECASE|re.MULTILINE)  # everynyan
     nyansense_pattern: re.Pattern = re.compile(pattern=r"(non)(?=[bcdfghjklmnpqrstvwxyz])", flags=re.IGNORECASE|re.MULTILINE)  # nyansense
+    logger: logging.Logger = None
 
     def __init__(self):
         """
             Initialize this module
         """
 
-        pass
+        self.logger: logging.Logger = logging.getLogger(type(self).__name__)
 
     def set_settings(self, settings: dict):
         """
@@ -40,6 +41,8 @@ class NyaizeText:
         """
             Execute this module as part of a chain of modules
         """
+
+        self.logger.info("Nyaizing notes...")
 
         if type(self.input) is str:
             return self._get_nyaized_text(text=self.input)
@@ -90,13 +93,14 @@ class RevertNyaizeText:
     everyone_pattern: re.Pattern = re.compile(pattern=r"(?<=every)(nyan)", flags=re.IGNORECASE|re.MULTILINE)  # everyone
     morning_pattern: re.Pattern = re.compile(pattern=r"(?<=morn)(yan)", flags=re.IGNORECASE|re.MULTILINE)  # morning
     snack_pattern: re.Pattern = re.compile(pattern=r"(?<=n)(ya)", flags=re.IGNORECASE|re.MULTILINE)  # snack
+    logger: logging.Logger = None
 
     def __init__(self):
         """
             Initialize this module
         """
 
-        pass
+        self.logger: logging.Logger = logging.getLogger(type(self).__name__)
 
     def set_settings(self, settings: dict):
         """
@@ -117,6 +121,8 @@ class RevertNyaizeText:
         """
             Execute this module as part of a chain of modules
         """
+
+        self.logger.info("Revert Nyaizing notes...")
 
         if type(self.input) is str:
             return self._get_reverted_nyaized_text(text=self.input)

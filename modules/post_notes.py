@@ -19,13 +19,14 @@ class PostNotes:
 
     # Non-Configurable
     setup: bool = False
+    logger: logging.Logger = None
 
     def __init__(self):
         """
             Initialize this module
         """
 
-        pass
+        self.logger: logging.Logger = logging.getLogger(type(self).__name__)
 
     def set_settings(self, settings: dict):
         """
@@ -69,8 +70,10 @@ class PostNotes:
         """
 
         if not self.setup:
-            logging.error("PostNotes module not configured...")
+            self.logger.error("Module not configured...")
             return
+
+        self.logger.info("Posting notes...")
 
         if type(self.input) is str:
             return self._post_note(text=self.input)
@@ -89,19 +92,19 @@ class PostNotes:
             notes.append(note)
 
             if response is not None and response.status_code == 429:
-                logging.error(f"PostNotes hit rate limit... returning...")
+                self.logger.error(f"Hit rate limit... returning...")
                 return
 
             if response is not None and response.status_code == 403:
-                logging.error(f"PostNotes is unauthorized... returning...")
+                self.logger.error(f"Posting notes is unauthorized... returning...")
                 return
 
             if response is not None and response.status_code == 500:
-                logging.error(f"PostNotes hit server with internal error... returning...")
+                self.logger.error(f"Hit server with internal error... returning...")
                 return
 
             if response is not None and response.status_code != 200:
-                logging.warning(f"PostNotes status code is {status}...")
+                self.logger.warning(f"Status code is {status}...")
 
         return notes
 
@@ -111,7 +114,7 @@ class PostNotes:
             text: str = ""
 
         if self.dry_run:
-            logging.debug(f"PostNotes dry run: `{text}`")
+            self.logger.debug(f"Dry run: `{text}`")
             return
 
         base_url: str = f"{self.host}/api/notes/create"

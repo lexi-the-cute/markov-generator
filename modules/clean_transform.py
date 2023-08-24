@@ -1,5 +1,5 @@
 import re
-# import logging
+import logging
 
 class CleanText:
     # Required
@@ -11,13 +11,14 @@ class CleanText:
     # Non-Configurable
     markdown_link_pattern: re.Pattern = re.compile(pattern=r"\[.*\]\(http.+\)", flags=re.IGNORECASE|re.MULTILINE)
     url_pattern: re.Pattern = re.compile(pattern=r"http\S+", flags=re.IGNORECASE|re.MULTILINE)
+    logger: logging.Logger = None
 
     def __init__(self):
         """
             Initialize this module
         """
 
-        pass
+        self.logger: logging.Logger = logging.getLogger(type(self).__name__)
 
     def set_settings(self, settings: dict):
         """
@@ -38,6 +39,8 @@ class CleanText:
         """
             Execute this module as part of a chain of modules
         """
+
+        self.logger.info("Cleaning notes...")
 
         if type(self.input) is str:
             return self._get_cleaned_text(text=self.input)

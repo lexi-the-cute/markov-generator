@@ -30,13 +30,14 @@ class DownloadNotes:
     include_nsfw: bool = False
     since_id: str = None
     processed_notes: int = 0
+    logger: logging.Logger = None
 
     def __init__(self):
         """
             Initialize this module
         """
 
-        pass
+        self.logger: logging.Logger = logging.getLogger(type(self).__name__)
 
     def set_settings(self, settings: dict):
         """
@@ -84,8 +85,10 @@ class DownloadNotes:
         """
 
         if not self.setup:
-            logging.error("DownloadNotes module not configured...")
+            self.logger.error("Module not configured...")
             return
+
+        self.logger.info("Downloading notes...")
 
         # Get Saved Latest ID If Exists
         if os.path.exists(self.tracker_file_path):
@@ -176,19 +179,19 @@ class DownloadNotes:
             notes: dict = response.json()
 
             if status == 429:
-                logging.error(f"DownloadNotes hit rate limit... returning...")
+                self.logger.error(f"Hit rate limit... returning...")
                 return
 
             if status == 403:
-                logging.error(f"DownloadNotes is unauthorized... returning...")
+                self.logger.error(f"Downloading notes is unauthorized... returning...")
                 return
 
             if status == 500:
-                logging.error(f"DownloadNotes hit server with internal error... returning...")
+                self.logger.error(f"Hit server with internal error... returning...")
                 return
 
             if status != 200:
-                logging.warning(f"DownloadNotes status code is {status}...")
+                self.logger.warning(f"Status code is {status}...")
                 continue
 
             if len(notes) == 0:

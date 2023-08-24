@@ -1,22 +1,25 @@
 import os
 import logging
 
+# Setup Logger
+logger = logging.getLogger(__name__)
+
 try:
     import coloredlogs
 except ImportError:
-    logging.error("Failed to import coloredlogs, please run `pip3 install coloredlogs`")
+    logger.error("Failed to import coloredlogs, please run `pip3 install coloredlogs`")
     exit(1)
 
 try:
     from dotenv import load_dotenv
 except ImportError:
-    logging.error("Failed to import dotenv, please run `pip3 install python-dotenv`")
+    logger.error("Failed to import dotenv, please run `pip3 install python-dotenv`")
     exit(1)
 
 try:
     import modules
 except ImportError as e:
-    logging.error(e)
+    logger.error(e)
     exit(1)
 
 def parse_boolean_from_string(string: str):

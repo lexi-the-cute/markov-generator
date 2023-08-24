@@ -1,5 +1,5 @@
 import re
-# import logging
+import logging
 
 class AddHashtags:
     # Required
@@ -8,12 +8,15 @@ class AddHashtags:
     # Default
     show_tag: bool = False
 
+    # Non-Configurable
+    logger: logging.Logger = None
+
     def __init__(self):
         """
             Initialize this module
         """
 
-        pass
+        self.logger: logging.Logger = logging.getLogger(type(self).__name__)
 
     def set_settings(self, settings: dict):
         """
@@ -34,6 +37,8 @@ class AddHashtags:
         """
             Execute this module as part of a chain of modules
         """
+
+        self.logger.info("Adding hashtags to notes...")
 
         # Create Operation Tag
         tag: dict = {
@@ -74,6 +79,6 @@ class AddHashtags:
             if "show" in tag and tag["show"] == True:
                 text = text.strip() + f" #{tag['name']}"
 
-        # print(f"Text: `{text}`, Tags: `{tags}`")
+        # self.logger.debug(f"Text: `{text}`, Tags: `{tags}`")
 
         return text

@@ -1,5 +1,5 @@
 import re
-# import logging
+import logging
 
 class FilterNotes:
     # Required
@@ -17,13 +17,14 @@ class FilterNotes:
     banned_cw: bool = True
     banned_mentions: bool = True
     banned_zws: bool = True
+    logger: logging.Logger = None
 
     def __init__(self):
         """
             Initialize this module
         """
 
-        pass
+        self.logger: logging.Logger = logging.getLogger(type(self).__name__)
 
     def set_settings(self, settings: dict):
         """
@@ -54,8 +55,10 @@ class FilterNotes:
         """
 
         if not self.setup:
-            logging.error("FilterNotes module not configured...")
+            self.logger.error("Module not configured...")
             return
+
+        self.logger.info("Filtering notes...")
 
         if type(self.input) is str:
             return self._get_should_filter_note_text(text=self.input)
@@ -143,7 +146,7 @@ class FilterNotes:
         for w in text.split():
             for toss_word in self.toss_text:
                 if toss_word.lower() in w.lower():
-                    # print(f"W: `{w}` - Toss Word: `{toss_word}`")
+                    # self.logger.debug(f"W: `{w}` - Toss Word: `{toss_word}`")
                     return True
 
         return False
