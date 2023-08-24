@@ -73,10 +73,10 @@ if __name__ == "__main__":
         # Support Text Only
         {"module": modules.RevertNyaizeText, "settings": {}},
         {"module": modules.CleanText, "settings": {}},
-        # TODO: Markov stuff here...
+        {"module": modules.GenerateMarkov, "settings": {}},
         {"module": modules.NormalizeText, "settings": {}},
         {"module": modules.CleanText, "settings": {}},
-        # TODO: Gibberish text stuff here... (https://catgirl.land/notes/9iqfxd9wok9h5myh)
+        {"module": modules.GibberishText, "settings": {}},
         {"module": modules.NyaizeText, "settings": {}},
         {"module": modules.AddHashtags, "settings": {}},
         {"module": modules.PostNotes, "settings": {"host": post_host, "api_key": post_api_key, "content_warning": content_warning, "dry_run": dry_run}}
