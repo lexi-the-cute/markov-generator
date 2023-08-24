@@ -81,7 +81,7 @@ class NormalizeText:
             }
 
             note["text"] = self._get_normalized_text(text=note["text"])
-            note["tags"] = note["tags"] + [tag] if "tags" in note else tag
+            note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
             notes.append(note)
 
         return notes

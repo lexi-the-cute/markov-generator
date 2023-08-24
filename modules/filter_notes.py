@@ -88,7 +88,7 @@ class FilterNotes:
             }
 
             # Add Tag To List
-            note["tags"] = note["tags"] + [tag] if "tags" in note else tag
+            note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
 
             notes.append({
                 "text": note["text"],
