@@ -65,17 +65,10 @@ if __name__ == "__main__":
     content_warning: str = os.getenv("CONTENT_WARNING", "markov generated post")
     dry_run: bool = parse_boolean_from_string(string=os.getenv("DRY_RUN", "true"))
 
-    # Filter Notes Settings
-    toss_text: list = [
-        "nagifur", "donate", "paid", "u.s", "cmakecache.txt",
-        "cpu", "chatgpt", "perception of me", "twitter",
-        ".actor@", "..onion", "urls:", "digitalocean"
-    ]
-
     STEPS: list = [
         # Require Meta
         {"module": modules.DownloadNotes, "settings": {"host": download_host, "api_key": download_api_key, "user_id": user_id}},
-        {"module": modules.FilterNotes, "settings": {"toss_text": toss_text}},
+        {"module": modules.FilterNotes, "settings": {"toss_text": os.getenv("FILTER_TOSS_TEXT", [])}},
 
         # Support Text Only
         {"module": modules.RevertNyaizeText, "settings": {}},

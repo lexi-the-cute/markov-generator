@@ -1,4 +1,5 @@
 import re
+import json
 import logging
 
 class FilterNotes:
@@ -33,7 +34,10 @@ class FilterNotes:
 
         count: int = 0
         if "toss_text" in settings:
-            self.toss_text = settings["toss_text"]
+            if type(settings["toss_text"]) is str:
+                self.toss_text = json.loads(settings["toss_text"])
+            else:
+                self.toss_text = settings["toss_text"]
             count += 1
 
         if "show_tag" in settings:
