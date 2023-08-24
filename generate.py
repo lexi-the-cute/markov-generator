@@ -2,20 +2,14 @@ import os
 
 import nltk
 import spacy
-from nltk.sentiment import SentimentIntensityAnalyzer
 from mosestokenizer import MosesDetokenizer
 
-def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: SentimentIntensityAnalyzer, text_to_toss: list[str] = [], names: list[str] = [], stopwords: list[str] = [], sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, reject_pattern: str = r"(^`)|(`$)|\s`|`\s|(^')|('$)|\s'|'\s|[\"(\(\)\[\])]", corpus_path: str = "corpus.txt"):
-    # Build the model from the corpus
-    model: markovify.Text = markovify.Text(input_text=corpus, state_size=state_size, well_formed=True, reject_reg=reject_pattern)
+def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: SentimentIntensityAnalyzer, text_to_toss: list[str] = [], names: list[str] = [], stopwords: list[str] = [], sentiment_score_minimum: float = 1.0, max_chars: int = 3000, state_size: int = 3, reject_pattern: str = orpus.txt"):
+
 
     # Keep looping until high quality text is generated
     while True:
         text: str = model.make_short_sentence(max_chars=max_chars)
-
-        # Toss text which shouldn't be included at all
-        if get_should_toss_text(text=text, text_to_toss=text_to_toss):
-            continue
 
         # Remove stopwords from text for analysis
         no_stopwords_text: str = remove_stopwords(text=text, stopwords=stopwords, detokenize=detokenize)
@@ -31,36 +25,6 @@ def create_markov_texts(detokenize: MosesDetokenizer, sentiment_analyzer: Sentim
             continue
 
         break
-
-    # Normalize text
-    text: str = get_normalized_text(text=text, names=names)
-
-    # Clean the text
-    text: str = get_cleaned_text(text=text)
-
-    # Nyaize the text
-    text: str = get_nyaized_text(text=text)
-
-    # Set text to null if zero length
-    if isinstance(text, str) and len(text) <= 0:
-        text = None
-
-    # Generate the text
-    return text
-
-def remove_stopwords(text: str, detokenize: MosesDetokenizer, stopwords: list[str] = []):
-    # Validate text
-    if text is None:
-        text: str = ""
-
-    sentences: list[str] = []
-    for sentence in nltk.sent_tokenize(text):
-        words: list[str] = [w for w in nltk.word_tokenize(sentence) if w.lower() not in stopwords]
-        sentence: str = detokenize(words)
-
-        sentences.append(sentence)
-
-    return ' '.join(sentences)
 
 def rebuild_sentences(text: str, detokenize: MosesDetokenizer):
     # Validate text
@@ -80,17 +44,7 @@ def rebuild_sentences(text: str, detokenize: MosesDetokenizer):
 def get_processed_text(doc: spacy.tokens.doc.Doc):
     return " ".join([sent.text for sent in doc.sents if len(sent.text) > 1])
 
-def get_sentiment(text: str, sid: SentimentIntensityAnalyzer):
-    # Validate text
-    if text is None:
-        text: str = ""
 
-    score: dict = sid.polarity_scores(text)
-    
-    positive: float = round((score['pos'] * 10), 2)
-    negative: float = round((score['neg'] * 10), 2)
-
-    return positive, negative
 
 if __name__ == "__main__":
     # NLTK PUNKT Lexicon

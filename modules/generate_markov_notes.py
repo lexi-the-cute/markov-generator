@@ -1,4 +1,4 @@
-# import re
+import re
 import logging
 
 try:
@@ -11,13 +11,23 @@ try:
 except ImportError:
     raise ImportError("Failed to import nltk, please run `pip3 install nltk`")
 
+try:
+    from nltk.sentiment import SentimentIntensityAnalyzer
+except ImportError:
+    raise ImportError("Failed to import nltk.sentiment.SentimentIntensityAnalyzer, please run `pip3 install nltk`")
+
 class GenerateMarkov:
     # Required
     input: object = None
 
     # Default
+    max_characters: int = 3000
+    nltk_sentiment_lexicon: str = "vader_lexicon"
+    nltk_sentiment_lexicon_path: str = "sentiment/vader_lexicon.zip"
+    rejection_pattern: str = re.compile(pattern=r"(^`)|(`$)|\s`|`\s|(^')|('$)|\s'|'\s|[\"(\(\)\[\])]", flags=re.IGNORECASE|re.MULTILINE)
+    well_formed: bool = True
     number_of_posts_to_generate: int = 1
-    sentimental_score_minimum: float = 1.0
+    sentiment_score_minimum: float = 1.0
     show_tag: bool = True
     state_size: int = 3
     words: dict = {
@@ -66,6 +76,8 @@ class GenerateMarkov:
     logger: logging.Logger = None
     LESSERDEBUG: int = 15
     VERBOSE: int = 5
+    model: markovify.Text = None
+    sentiment_analyzer: SentimentIntensityAnalyzer = None
 
     def __init__(self):
         """
@@ -81,8 +93,8 @@ class GenerateMarkov:
         if "number_of_posts_to_generate" in settings:
             self.number_of_posts_to_generate = settings["number_of_posts_to_generate"]
 
-        if "sentimental_score_minimum" in settings:
-            self.sentimental_score_minimum = settings["sentimental_score_minimum"]
+        if "sentiment_score_minimum" in settings:
+            self.sentiment_score_minimum = settings["sentiment_score_minimum"]
 
         if "state_size" in settings:
             self.state_size = settings["state_size"]
@@ -92,6 +104,33 @@ class GenerateMarkov:
 
         if "show_tag" in settings:
             self.show_tag = settings["show_tag"]
+
+        if "well_formed" in settings:
+            self.well_formed = settings["well_formed"]
+
+        if "rejection_pattern" in settings:
+            self.rejection_pattern = settings["rejection_pattern"]
+        
+        if "nltk_sentiment_lexicon_path" in settings:
+            self.nltk_sentiment_lexicon_path = settings["nltk_sentiment_lexicon_path"]
+
+        if "nltk_sentiment_lexicon" in settings:
+            self.nltk_sentiment_lexicon = settings["nltk_sentiment_lexicon"]
+
+        if "max_characters" in settings:
+            self.max_characters = settings["max_characters"]
+
+        # Download VADER lexicon for sentiment analysis
+        # VADER is designed for short, social media posts
+        try:
+            nltk.data.find(self.nltk_sentiment_lexicon_path)
+        except LookupError:
+            print(f"Failed to find {self.nltk_sentiment_lexicon}. Downloading for you...")
+            nltk.download(self.nltk_sentiment_lexicon)
+
+        # Initialize Sentiment Analyzer
+        self.sentiment_analyzer: SentimentIntensityAnalyzer = SentimentIntensityAnalyzer()
+        self.sentiment_analyzer.lexicon.update(self.words)
 
     def set_input(self, input: object):
         """
@@ -107,17 +146,28 @@ class GenerateMarkov:
 
         self.logger.info("Markovifying notes...")
 
+        corpus: str = None
         if type(self.input) is str:
-            return self._get_markov_text(text=self.input)
+            corpus: str = self.input
         
-        if type(self.input) is not list:
-            return
+        # Turn list of notes into a single text corpus
+        texts: list = []
+        if type(self.input) is list:
+            for note in self.input:
+                if "text" not in note:
+                    continue
+
+                texts.append(note["text"])
+        corpus: str = '\n'.join(texts)
+
+        # Build the model from the corpus
+        self.model: markovify.Text = markovify.Text(
+            input_text=corpus, state_size=self.state_size,
+            well_formed=self.well_formed, reject_reg=self.rejection_pattern
+        )
 
         notes: list = []
-        for note in self.input:
-            if "text" not in note:
-                continue
-
+        for count in range(self.number_of_posts_to_generate):
             # Create Operation Tag
             tag: dict = {
                 "name": "GenerateMarkov",
@@ -125,23 +175,35 @@ class GenerateMarkov:
                 "show": self.show_tag
             }
 
-            text: str = self._get_markov_text(text=note["text"])
-
-            # If modification did not take effect, then remove tag
-            if self.show_tag and note["text"] == text:
-                tag["show"] = False
-
-            note["text"] = text
-            note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
-            notes.append(note)
+            notes.append({
+                "text": self._get_markov_text(),
+                "tags": [tag]
+            })
 
         return notes
 
-    def _get_markov_text(self, text: str):
+    def _get_sentiment(self, text: str):
         # Validate text
         if text is None:
             text: str = ""
 
-        # ...
+        score: dict = self.sentiment_analyzer.polarity_scores(text)
+        
+        positive: float = round((score['pos'] * 10), 2)
+        negative: float = round((score['neg'] * 10), 2)
+
+        return positive, negative
+
+    def _get_markov_text(self):
+        while True:
+            text: str = self.model.make_short_sentence(max_chars=self.max_characters)
+
+            # We want to keep the notes more positive
+            positive_score, negative_score = self._get_sentiment(text=text)
+            self.logger.log(level=self.VERBOSE, msg=f"Positive: {positive_score} - Negative: {negative_score} - Note: `{text}`")
+
+            # Check the sentiment score
+            if positive_score >= self.sentiment_score_minimum:
+                break
 
         return text
