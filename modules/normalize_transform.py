@@ -75,12 +75,18 @@ class NormalizeText:
 
             # Create Operation Tag
             tag: dict = {
-                "name": "CleanText",
+                "name": "NormalizeText",
                 "operation": "modify",
                 "show": self.show_tag
             }
 
-            note["text"] = self._get_normalized_text(text=note["text"])
+            text: str = self._get_normalized_text(text=note["text"])
+
+            # If modification did not take effect, then remove tag
+            if self.show_tag and note["text"] == text:
+                tag["show"] = False
+
+            note["text"] = text
             note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
             notes.append(note)
 

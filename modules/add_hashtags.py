@@ -61,6 +61,16 @@ class AddHashtags:
             if "tags" not in note:
                 note["tags"] = []
 
+            # We only want to add our tag if we add other tags
+            modifies_text: bool = False
+            for note_tag in note["tags"]:
+                if "show" in note_tag and note_tag["show"] == True:
+                    modifies_text: bool = True
+
+            tag["show"] = self.show_tag
+            if tag["show"] and not modifies_text:
+                tag["show"] = False
+
             note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
             note["text"] = self._get_tagged_text(text=note["text"], tags=note["tags"])
             notes.append(note)
