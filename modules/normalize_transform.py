@@ -30,6 +30,7 @@ class NormalizeText:
     capitalize_sentence_pattern: re.Pattern = re.compile(pattern=r'[.!?]([\s\n]*)(\w)', flags=re.IGNORECASE|re.MULTILINE)
     ending_punctuation_pattern: re.Pattern = re.compile(pattern=r'\s([,.?;:\-)\]>]+)', flags=re.MULTILINE)
     starting_punctuation_pattern: re.Pattern = re.compile(pattern=r'([:\-(\[<]+)\s', flags=re.MULTILINE)
+    emoji_pattern: re.Pattern = re.compile(pattern=r'(:)([a-z_\-]+)(:)', flags=re.IGNORECASE|re.MULTILINE)
     logger: logging.Logger = None
     LESSERDEBUG: int = 15
     VERBOSE: int = 5
@@ -111,8 +112,9 @@ class NormalizeText:
         text: str = re.sub(pattern=self.ending_punctuation_pattern, repl=r'\1', string=text)
         text: str = re.sub(pattern=self.capitalize_i_pattern, repl=r'\1I\2', string=text)
         text: str = re.sub(pattern=self.capitalize_sentence_pattern, repl=lambda m: f".{m.group(1)}{m.group(2).upper()}", string=text)
-        
+        text: str = re.sub(pattern=self.emoji_pattern, repl=r' \1\2\3 ', string=text)
+
         for name in self.names:
             text: str = text.replace(f" {name.lower()}", f" {name.capitalize()}")
 
-        return text
+        return text.strip()
