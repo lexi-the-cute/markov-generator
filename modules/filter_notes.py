@@ -6,6 +6,9 @@ class FilterNotes:
     input: object = None
     toss_text: list = None
 
+    # Default
+    show_tag: bool = False
+
     # Non-Configurable
     setup: bool = False
     banned_visibilities: list = ["specified", "hidden"]
@@ -31,6 +34,9 @@ class FilterNotes:
         if "toss_text" in settings:
             self.toss_text = settings["toss_text"]
             count += 1
+
+        if "show_tag" in settings:
+            self.show_tag = settings["show_tag"]
 
         if count == 1:
             self.setup = True
@@ -71,9 +77,20 @@ class FilterNotes:
             if self._get_should_filter_note_text(text=note["text"]):
                 continue
 
+            # Create Operation Tag
+            tag: dict = {
+                "name": "FilterNotes",
+                "operation": "filter",
+                "show": self.show_tag
+            }
+
+            # Add Tag To List
+            note["tags"] = note["tags"] + [tag] if "tags" in note else tag
+
             notes.append({
                 "text": note["text"],
-                "meta": note["meta"]
+                "meta": note["meta"],
+                "tags": note["tags"]
             })
 
         return notes

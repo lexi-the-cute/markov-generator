@@ -5,6 +5,9 @@ class NyaizeText:
     # Required
     input: object = None
 
+    # Default
+    show_tag: bool = True
+
     # Non-Configurable
     snyack_pattern: re.Pattern = re.compile(pattern=r"(?<=n)(a)", flags=re.IGNORECASE|re.MULTILINE)  # snyack
     mornyan_pattern: re.Pattern = re.compile(pattern=r"(?<=morn)(ing)", flags=re.IGNORECASE|re.MULTILINE)  # mornyan
@@ -23,7 +26,8 @@ class NyaizeText:
             Configure the settings for this module
         """
 
-        pass
+        if "show_tag" in settings:
+            self.show_tag = settings["show_tag"]
 
     def set_input(self, input: object):
         """
@@ -48,7 +52,15 @@ class NyaizeText:
             if "text" not in note:
                 continue
 
+            # Create Operation Tag
+            tag: dict = {
+                "name": "NyaizeText",
+                "operation": "modify",
+                "show": self.show_tag
+            }
+
             note["text"] = self._get_nyaized_text(text=note["text"])
+            note["tags"] = note["tags"] + [tag] if "tags" in note else tag
             notes.append(note)
 
         return notes
@@ -69,6 +81,9 @@ class RevertNyaizeText:
     # Required
     input: object = None
 
+    # Default
+    show_tag: bool = False
+
     # Non-Configurable
     banana_pattern: re.Pattern = re.compile(pattern=r"(?<=n)(yanya)", flags=re.IGNORECASE|re.MULTILINE)  # banana
     nonsense_pattern: re.Pattern = re.compile(pattern=r"(nyan)(?=[bcdfghjklmnpqrstvwxyz])", flags=re.IGNORECASE|re.MULTILINE)  # nonsense
@@ -88,7 +103,8 @@ class RevertNyaizeText:
             Configure the settings for this module
         """
 
-        pass
+        if "show_tag" in settings:
+            self.show_tag = settings["show_tag"]
 
     def set_input(self, input: object):
         """
@@ -113,7 +129,15 @@ class RevertNyaizeText:
             if "text" not in note:
                 continue
 
+            # Create Operation Tag
+            tag: dict = {
+                "name": "RevertNyaizeText",
+                "operation": "modify",
+                "show": self.show_tag
+            }
+
             note["text"] = self._get_reverted_nyaized_text(text=note["text"])
+            note["tags"] = note["tags"] + [tag] if "tags" in note else tag
             notes.append(note)
 
         return notes

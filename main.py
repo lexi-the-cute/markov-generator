@@ -2,15 +2,21 @@ import os
 import logging
 
 try:
-    import modules
-except ImportError as e:
-    logging.error(e)
+    import coloredlogs
+except ImportError:
+    logging.error("Failed to import coloredlogs, please run `pip3 install coloredlogs`")
     exit(1)
 
 try:
     from dotenv import load_dotenv
 except ImportError:
     logging.error("Failed to import dotenv, please run `pip3 install python-dotenv`")
+    exit(1)
+
+try:
+    import modules
+except ImportError as e:
+    logging.error(e)
     exit(1)
 
 def parse_boolean_from_string(string: str):
@@ -38,7 +44,12 @@ def parse_level_from_string(string: str):
         return logging.NOTSET
 
 if __name__ == "__main__":
+    # Load Environment Variables
     load_dotenv()
+
+    # Set Logger Configuration
+    LOG_LEVEL: int = parse_level_from_string(os.getenv("LOG_LEVEL", "INFO"))
+    coloredlogs.install(level=LOG_LEVEL)
 
     # Download Notes Settings
     download_host: str = os.getenv("DOWNLOAD_HOST")
@@ -58,10 +69,6 @@ if __name__ == "__main__":
         ".actor@", "..onion", "urls:", "digitalocean"
     ]
 
-    # Set Logger Configuration
-    LOG_LEVEL: int = parse_level_from_string(os.getenv("LOG_LEVEL", "INFO"))
-    logging.basicConfig(level=LOG_LEVEL)
-
     STEPS: list = [
         # Require Meta
         {"module": modules.DownloadNotes, "settings": {"host": download_host, "api_key": download_api_key, "user_id": user_id}},
@@ -75,7 +82,7 @@ if __name__ == "__main__":
         {"module": modules.CleanText, "settings": {}},
         # TODO: Gibberish text stuff here... (https://catgirl.land/notes/9iqfxd9wok9h5myh)
         {"module": modules.NyaizeText, "settings": {}},
-        # TODO: Add a processing tag to each note on each module, then convert to hashtags here
+        {"module": modules.AddHashtags, "settings": {}},
         {"module": modules.PostNotes, "settings": {"host": post_host, "api_key": post_api_key, "content_warning": content_warning, "dry_run": dry_run}}
     ]
 

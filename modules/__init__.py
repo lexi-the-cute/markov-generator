@@ -4,4 +4,5 @@ from .nyaize_transform import NyaizeText, RevertNyaizeText
 from .clean_transform import CleanText
 # Markov stuff here
 from .normalize_transform import NormalizeText
+from .add_hashtags import AddHashtags
 from .post_notes import PostNotes

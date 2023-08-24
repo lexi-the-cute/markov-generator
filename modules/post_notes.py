@@ -111,7 +111,7 @@ class PostNotes:
             text: str = ""
 
         if self.dry_run:
-            logging.debug(f"PostNotes dry run: {text}")
+            logging.debug(f"PostNotes dry run: `{text}`")
             return
 
         base_url: str = f"{self.host}/api/notes/create"

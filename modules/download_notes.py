@@ -20,6 +20,7 @@ class DownloadNotes:
     session: requests.Session = requests.Session()
     file_path: str = "corpus.csv"
     tracker_file_path: str = "latest_id.txt"
+    show_tag: bool = False
 
     # Non-Configurable
     setup: bool = False
@@ -64,6 +65,9 @@ class DownloadNotes:
         if "session" in settings:
             self.session = settings["session"]
 
+        if "show_tag" in settings:
+            self.show_tag = settings["show_tag"]
+
         if count == 3:
             self.setup = True
 
@@ -100,9 +104,17 @@ class DownloadNotes:
                         first_loop: bool = False
                         continue
 
+                    # Create Operation Tag
+                    tag: dict = {
+                        "name": "DownloadNotes",
+                        "operation": "create",
+                        "show": self.show_tag
+                    }
+
                     notes.append({
                         "text": note[0],
-                        "meta": json.loads(note[1])
+                        "meta": json.loads(note[1]),
+                        "tags": [tag]
                     })
 
         # Import New Notes
@@ -200,7 +212,15 @@ class DownloadNotes:
                 self.processed_notes += 1
                 corpus.writerow([note["text"], json.dumps(meta)])
 
+                # Create Operation Tag
+                tag: dict = {
+                    "name": "DownloadNotes",
+                    "operation": "create",
+                    "show": self.show_tag
+                }
+
                 yield {
                     "text": note["text"],
-                    "meta": meta
+                    "meta": meta,
+                    "tags": [tag]
                 }

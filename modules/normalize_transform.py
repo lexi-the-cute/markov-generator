@@ -6,6 +6,7 @@ class NormalizeText:
     input: object = None
 
     # Default
+    show_tag: bool = False
     names: list[str] = [
         "becky",
         "prim",
@@ -43,6 +44,9 @@ class NormalizeText:
         if "names" in settings:
             self.names = settings["names"]
 
+        if "show_tag" in settings:
+            self.show_tag = settings["show_tag"]
+
     def set_input(self, input: object):
         """
             Set the input used by this module
@@ -66,7 +70,15 @@ class NormalizeText:
             if "text" not in note:
                 continue
 
+            # Create Operation Tag
+            tag: dict = {
+                "name": "CleanText",
+                "operation": "modify",
+                "show": self.show_tag
+            }
+
             note["text"] = self._get_normalized_text(text=note["text"])
+            note["tags"] = note["tags"] + [tag] if "tags" in note else tag
             notes.append(note)
 
         return notes

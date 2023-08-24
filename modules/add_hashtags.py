@@ -1,16 +1,12 @@
 import re
 # import logging
 
-class CleanText:
+class AddHashtags:
     # Required
     input: object = None
 
     # Default
     show_tag: bool = False
-
-    # Non-Configurable
-    markdown_link_pattern: re.Pattern = re.compile(pattern=r"\[.*\]\(http.+\)", flags=re.IGNORECASE|re.MULTILINE)
-    url_pattern: re.Pattern = re.compile(pattern=r"http\S+", flags=re.IGNORECASE|re.MULTILINE)
 
     def __init__(self):
         """
@@ -39,8 +35,15 @@ class CleanText:
             Execute this module as part of a chain of modules
         """
 
+        # Create Operation Tag
+        tag: dict = {
+            "name": "AddHashtags",
+            "operation": "modify",
+            "show": self.show_tag
+        }
+
         if type(self.input) is str:
-            return self._get_cleaned_text(text=self.input)
+            return self._get_tagged_text(text=self.input, tags=[tag])
         
         if type(self.input) is not list:
             return
@@ -50,28 +53,27 @@ class CleanText:
             if "text" not in note:
                 continue
 
-            # Create Operation Tag
-            tag: dict = {
-                "name": "CleanText",
-                "operation": "modify",
-                "show": self.show_tag
-            }
+            if "tags" not in note:
+                note["tags"] = []
 
-            note["text"] = self._get_cleaned_text(text=note["text"])
             note["tags"] = note["tags"] + [tag] if "tags" in note else tag
+            note["text"] = self._get_tagged_text(text=note["text"], tags=note["tags"])
             notes.append(note)
 
         return notes
 
-    def _get_cleaned_text(self, text: str):
+    def _get_tagged_text(self, text: str, tags: list):
         # Validate text
         if text is None:
             text: str = ""
 
-        text: str = text.strip()
-        text: str = re.sub(pattern=self.markdown_link_pattern, repl='', string=text)
-        text: str = re.sub(pattern=self.url_pattern, repl='', string=text)
-        text: str = text.replace("UwU UwU", "UwU")
-        text: str = text.replace("* * ", "")
+        if tags is None:
+            tags: list = []
+
+        for tag in tags:
+            if "show" in tag and tag["show"] == True:
+                text = text.strip() + f" #{tag['name']}"
+
+        # print(f"Text: `{text}`, Tags: `{tags}`")
 
         return text
