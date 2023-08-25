@@ -1,3 +1,4 @@
+import random
 import logging
 
 try:
@@ -12,6 +13,7 @@ class PostNotes:
     api_key: str
 
     # Default
+    chance_execute: float = 1.0
     dry_run: bool = True
     content_warning: str = None
     visibility: str = "public"  # public, home, followers, specified, hidden
@@ -56,6 +58,9 @@ class PostNotes:
         if "session" in settings:
             self.session = settings["session"]
 
+        if "chance_execute" in settings:
+            self.chance_execute = settings["chance_execute"]
+
         if count == 2:
             self.setup = True
 
@@ -74,6 +79,11 @@ class PostNotes:
         if not self.setup:
             self.logger.error("Module not configured...")
             return
+
+        # Gives probability of executing module
+        if self.chance_execute < random.random():
+            self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping posting notes...")
+            return self.input
 
         self.logger.info("Posting notes...")
 

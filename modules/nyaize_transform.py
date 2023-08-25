@@ -1,4 +1,5 @@
 import re
+import random
 import logging
 
 class NyaizeText:
@@ -6,6 +7,7 @@ class NyaizeText:
     input: object = None
 
     # Default
+    chance_execute: float = 1.0
     show_tag: bool = True
 
     # Non-Configurable
@@ -32,6 +34,9 @@ class NyaizeText:
         if "show_tag" in settings:
             self.show_tag = settings["show_tag"]
 
+        if "chance_execute" in settings:
+            self.chance_execute = settings["chance_execute"]
+
     def set_input(self, input: object):
         """
             Set the input used by this module
@@ -43,6 +48,11 @@ class NyaizeText:
         """
             Execute this module as part of a chain of modules
         """
+
+        # Gives probability of executing module
+        if self.chance_execute < random.random():
+            self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping nyaizing notes...")
+            return self.input
 
         self.logger.info("Nyaizing notes...")
 
@@ -93,6 +103,7 @@ class RevertNyaizeText:
     input: object = None
 
     # Default
+    chance_execute: float = 1.0
     show_tag: bool = False
 
     # Non-Configurable
@@ -118,6 +129,9 @@ class RevertNyaizeText:
         if "show_tag" in settings:
             self.show_tag = settings["show_tag"]
 
+        if "chance_execute" in settings:
+            self.chance_execute = settings["chance_execute"]
+
     def set_input(self, input: object):
         """
             Set the input used by this module
@@ -129,6 +143,11 @@ class RevertNyaizeText:
         """
             Execute this module as part of a chain of modules
         """
+
+        # Gives probability of executing module
+        if self.chance_execute < random.random():
+            self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping reverting nyaizing notes...")
+            return self.input
 
         self.logger.info("Revert Nyaizing notes...")
 

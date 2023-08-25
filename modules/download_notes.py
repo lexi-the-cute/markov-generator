@@ -2,6 +2,7 @@ import os
 import re
 import csv
 import json
+import random
 import logging
 
 try:
@@ -16,6 +17,7 @@ class DownloadNotes:
     user_id: str
 
     # Default
+    chance_execute: float = 1.0
     limit: int = 100
     session: requests.Session = requests.Session()
     file_path: str = "corpus.csv"
@@ -69,6 +71,9 @@ class DownloadNotes:
         if "show_tag" in settings:
             self.show_tag = settings["show_tag"]
 
+        if "chance_execute" in settings:
+            self.chance_execute = settings["chance_execute"]
+
         if count == 3:
             self.setup = True
 
@@ -87,6 +92,11 @@ class DownloadNotes:
         if not self.setup:
             self.logger.error("Module not configured...")
             return
+
+        # Gives probability of executing module
+        if self.chance_execute < random.random():
+            self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping downloading notes...")
+            return self.input
 
         self.logger.info("Downloading notes...")
 

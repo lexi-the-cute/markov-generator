@@ -8,15 +8,9 @@ except ImportError:
     raise ImportError("Failed to import nltk, please run `pip3 install nltk`")
 
 try:
-    # This was designed for spanish, but seems to mostly work on english from what I've tested
-    import pylabeador
+    import hyphenate
 except ImportError:
-    raise ImportError("Failed to import pylabeador, please run `pip3 install pylabeador`")
-
-try:
-    from pylabeador.errors import HyphenatorError
-except ImportError:
-    raise ImportError("Failed to import pylabeador.errors.HyphenatorError, please run `pip3 install pylabeador`")   
+    raise ImportError("Failed to import hyphenate, please run `pip3 install hyphenate`")
 
 class GibberishText:
     # Required
@@ -157,12 +151,7 @@ class GibberishText:
             word_pos: int = 0
             for word in words:
                 if self.word_pattern.match(string=word):
-                    # Breaks on `everything`
-                    try:
-                        syllables: list = pylabeador.syllabify(word)
-                    except HyphenatorError as e:
-                        self.logger.error(msg=f"pylabeador couldn't handle the word, `{e.word}`. Skipping gibberishifying this text...")
-                        return False
+                    syllables: list = hyphenate.hyphenate_word(word=word)
 
                     word: str = self._get_gibberishified_word_from_syllables(syllables=syllables)
                 elif any(c.isalpha() for c in word):

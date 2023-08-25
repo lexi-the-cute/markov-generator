@@ -1,4 +1,5 @@
 import re
+import random
 import logging
 
 try:
@@ -21,6 +22,7 @@ class GenerateMarkov:
     input: object = None
 
     # Default
+    chance_execute: float = 1.0
     max_characters: int = 3000
     nltk_sentiment_lexicon: str = "vader_lexicon"
     nltk_sentiment_lexicon_path: str = "sentiment/vader_lexicon.zip"
@@ -120,6 +122,9 @@ class GenerateMarkov:
         if "max_characters" in settings:
             self.max_characters = settings["max_characters"]
 
+        if "chance_execute" in settings:
+            self.chance_execute = settings["chance_execute"]
+
         # Download VADER lexicon for sentiment analysis
         # VADER is designed for short, social media posts
         try:
@@ -143,6 +148,11 @@ class GenerateMarkov:
         """
             Execute this module as part of a chain of modules
         """
+
+        # Gives probability of executing module
+        if self.chance_execute < random.random():
+            self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping generating notes...")
+            return self.input
 
         self.logger.info("Markovifying notes...")
 

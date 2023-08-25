@@ -1,3 +1,4 @@
+import random
 import logging
 
 try:
@@ -16,6 +17,7 @@ class RebuildText:
     input: object = None
 
     # Default
+    chance_execute: float = 1.0
     show_tag: bool = False
     detokenizer_language: str = "en"
     tokenizer_language: str = "english"
@@ -49,6 +51,9 @@ class RebuildText:
         if "tokenizer_language" in settings:
             self.tokenizer_language = settings["tokenizer_language"]
 
+        if "chance_execute" in settings:
+            self.chance_execute = settings["chance_execute"]
+
         # Download PUNKT lexicon for rebuilding sentences
         # PUNKT is designed for tokenizing words
         try:
@@ -70,6 +75,11 @@ class RebuildText:
         """
             Execute this module as part of a chain of modules
         """
+
+        # Gives probability of executing module
+        if self.chance_execute < random.random():
+            self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping rebuilding notes...")
+            return self.input
 
         self.logger.info("Rebuilding notes...")
 

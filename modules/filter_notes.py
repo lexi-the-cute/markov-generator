@@ -1,5 +1,6 @@
 import re
 import json
+import random
 import logging
 
 class FilterNotes:
@@ -8,6 +9,7 @@ class FilterNotes:
     toss_text: list = None
 
     # Default
+    chance_execute: float = 1.0
     show_tag: bool = False
 
     # Non-Configurable
@@ -45,6 +47,9 @@ class FilterNotes:
         if "show_tag" in settings:
             self.show_tag = settings["show_tag"]
 
+        if "chance_execute" in settings:
+            self.chance_execute = settings["chance_execute"]
+
         if count == 1:
             self.setup = True
 
@@ -63,6 +68,11 @@ class FilterNotes:
         if not self.setup:
             self.logger.error("Module not configured...")
             return
+
+        # Gives probability of executing module
+        if self.chance_execute < random.random():
+            self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping filtering notes...")
+            return self.input
 
         self.logger.info("Filtering notes...")
 
