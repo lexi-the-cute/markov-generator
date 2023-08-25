@@ -7,6 +7,7 @@ class NormalizeText:
     input: object = None
 
     # Default
+    should_recase_sentence: bool = True
     chance_execute: float = 1.0
     show_tag: bool = False
     names: list[str] = [
@@ -57,6 +58,9 @@ class NormalizeText:
 
         if "chance_execute" in settings:
             self.chance_execute = settings["chance_execute"]
+
+        if "should_recase_sentence" in settings:
+            self.should_recase_sentence = settings["should_recase_sentence"]
 
     def set_input(self, input: object):
         """
@@ -112,7 +116,10 @@ class NormalizeText:
         if text is None:
             text: str = ""
 
-        text: str = text.capitalize()
+        # Destroys old capitalization, not always desired
+        if self.should_recase_sentence:
+            text: str = text.capitalize()
+        
         text: str = text.replace("Hmmmmmmm", "hmmmmmmm...")
         text: str = text.replace(" uwu ", " UwU ")
         text: str = text.replace(" owo ", " OwO ")
