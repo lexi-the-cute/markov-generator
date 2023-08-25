@@ -1,3 +1,4 @@
+import re
 import random
 import logging
 
@@ -23,6 +24,7 @@ class RebuildText:
     tokenizer_language: str = "english"
 
     # Non-Configurable
+    dont_pattern: re.Pattern = re.compile(pattern=r'(do) (n\'t)', flags=re.IGNORECASE|re.MULTILINE)
     nltk_tokenizer_lexicon: str = "punkt"
     nltk_tokenizer_lexicon_path: str = "tokenizers/punkt"
     detokenizer: MosesDetokenizer = None
@@ -113,17 +115,26 @@ class RebuildText:
 
         return notes
 
+    def _get_fixed_words(self, text: str):
+        text: str = re.sub(pattern=self.dont_pattern, repl=r'\1\2', string=text)
+
+        return text
+
     def _get_rebuilt_text(self, text: str):
         # Validate text
         if text is None:
             text: str = ""
 
+        # Breaks word, `don't` as `do n't`
         sentences: list[str] = []
         for sentence in nltk.sent_tokenize(text=text, language=self.tokenizer_language):
             words: list[str] = nltk.word_tokenize(sentence)
             # words: list[str] = sentence.split()
             sentence: str = self.detokenizer(words)
+            sentence: str = self._get_fixed_words(text=sentence)
 
             sentences.append(sentence)
+
+        self.logger.log(level=self.VERBOSE, msg=f"OG Text: {text}, New Text: {' '.join(sentences)}")
 
         return ' '.join(sentences)
