@@ -65,7 +65,8 @@ class AddHashtags:
         tag: dict = {
             "name": "AddHashtags",
             "operation": "modify",
-            "show": self.show_tag
+            "show": self.show_tag,
+            "skipped": self.skipped
         }
 
         if type(self.input) is str:

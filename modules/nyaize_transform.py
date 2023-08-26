@@ -85,7 +85,8 @@ class NyaizeText:
             tag: dict = {
                 "name": "NyaizeText",
                 "operation": "modify",
-                "show": self.show_tag
+                "show": self.show_tag,
+                "skipped": self.skipped
             }
 
             if not self.skipped:
@@ -201,7 +202,8 @@ class RevertNyaizeText:
             tag: dict = {
                 "name": "RevertNyaizeText",
                 "operation": "modify",
-                "show": self.show_tag
+                "show": self.show_tag,
+                "skipped": self.skipped
             }
 
             text: str = note["text"]

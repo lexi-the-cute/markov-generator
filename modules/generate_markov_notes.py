@@ -76,7 +76,6 @@ class GenerateMarkov:
     }
 
     # Non-Configurable
-    skipped: bool = False
     logger: logging.Logger = None
     LESSERDEBUG: int = 15
     VERBOSE: int = 5
@@ -190,7 +189,8 @@ class GenerateMarkov:
             tag: dict = {
                 "name": "GenerateMarkov",
                 "operation": "create",
-                "show": self.show_tag
+                "show": self.show_tag,
+                "skipped": False
             }
 
             note: dict = {

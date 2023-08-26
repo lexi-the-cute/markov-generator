@@ -110,7 +110,8 @@ class PostNotes:
         tag: dict = {
             "name": "PostNotes",
             "operation": "publish",
-            "show": self.show_tag
+            "show": self.show_tag,
+            "skipped": self.skipped
         }
 
         notes: list = []

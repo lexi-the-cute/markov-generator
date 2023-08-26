@@ -110,7 +110,8 @@ class NormalizeText:
             tag: dict = {
                 "name": "NormalizeText",
                 "operation": "modify",
-                "show": self.show_tag
+                "show": self.show_tag,
+                "skipped": self.skipped
             }
 
             text: str = note["text"]

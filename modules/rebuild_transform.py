@@ -114,7 +114,8 @@ class RebuildText:
             tag: dict = {
                 "name": "RebuildText",
                 "operation": "modify",
-                "show": self.show_tag
+                "show": self.show_tag,
+                "skipped": self.skipped
             }
 
             text: str = note["text"]

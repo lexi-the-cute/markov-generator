@@ -113,7 +113,8 @@ class GibberishText:
             tag: dict = {
                 "name": "GibberishText",
                 "operation": "modify",
-                "show": self.show_tag
+                "show": self.show_tag,
+                "skipped": self.skipped
             }
 
             text: str = note["text"]

@@ -115,7 +115,8 @@ class FilterNotes:
             tag: dict = {
                 "name": "FilterNotes",
                 "operation": "filter",
-                "show": self.show_tag
+                "show": self.show_tag,
+                "skipped": self.skipped
             }
 
             # Add Note To List

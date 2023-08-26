@@ -120,7 +120,8 @@ class DownloadNotes:
                     tag: dict = {
                         "name": "DownloadNotes",
                         "operation": "create",
-                        "show": self.show_tag
+                        "show": self.show_tag,
+                        "skipped": False
                     }
 
                     note: dict = {
