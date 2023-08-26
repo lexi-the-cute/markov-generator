@@ -24,6 +24,7 @@ class GibberishText:
     vowels: list = ["a", "e", "i", "o", "u"]
 
     # Non-Configurable
+    skipped: bool = False
     nltk_tokenizer_lexicon: str = "punkt"
     nltk_tokenizer_lexicon_path: str = "tokenizers/punkt"
     logger: logging.Logger = None
@@ -80,9 +81,9 @@ class GibberishText:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping gibberishifying notes...")
-            return self.input
-
-        self.logger.info("Gibberishifying notes...")
+            self.skipped: bool = True
+        else:
+            self.logger.info("Gibberishifying notes...")
 
         if type(self.input) is str:
             return self._get_gibberishified_text(text=self.input)
@@ -91,7 +92,15 @@ class GibberishText:
             return
 
         notes: list = []
-        for note in self.input:
+        for note_data in self.input:
+            if "note" not in note_data:
+                continue
+
+            if "tags" not in note_data:
+                continue
+
+            note: dict = note_data["note"][-1].copy()
+
             if "text" not in note:
                 continue
 
@@ -102,16 +111,25 @@ class GibberishText:
                 "show": self.show_tag
             }
 
-            text: str = self._get_gibberishified_text(text=note["text"])
-            if text is False:
-                text: str = note["text"]
+            text: str = note["text"]
+            if not self.skipped:
+                text: str = self._get_gibberishified_text(text=note["text"])
 
             # If modification did not take effect, then remove tag
             if self.show_tag and note["text"] == text:
                 tag["show"] = False
 
-            note["text"] = text
-            note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
+            note["text"] = text.strip()
+            note_data["tags"] = note_data["tags"] + [tag] if "tags" in note_data else [tag]
+
+            # Add Note To List
+            note_data["note"].append(note)
+
+            notes.append({
+                "note": note_data["note"],
+                "tags": note_data["tags"]
+            })
+
             notes.append(note)
 
         return notes
@@ -157,7 +175,7 @@ class GibberishText:
                 elif any(c.isalpha() for c in word):
                     # When a word contains both letters and something else
                     self.logger.log(level=self.LESSERDEBUG, msg=f"The word, `{word}`, contains characters which can't be processed right now. Skipping gibberishifying this text...")
-                    return False
+                    return text
 
                 words[word_pos] = word
                 word_pos += 1

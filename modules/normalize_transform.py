@@ -29,9 +29,10 @@ class NormalizeText:
     ]
 
     # Non-Configurable
+    skipped: bool = False
     capitalize_i_pattern: re.Pattern = re.compile(pattern=r'(\s)i(\W)', flags=re.IGNORECASE|re.MULTILINE)
     capitalize_sentence_pattern: re.Pattern = re.compile(pattern=r'[.!?]([\s\n]*)(\w)', flags=re.IGNORECASE|re.MULTILINE)
-    ending_punctuation_pattern: re.Pattern = re.compile(pattern=r'\s([,.?;:\-)\]>]+)', flags=re.MULTILINE)
+    ending_punctuation_pattern: re.Pattern = re.compile(pattern=r'\s([,.?!;:\-)\]>]+)', flags=re.MULTILINE)
     starting_punctuation_pattern: re.Pattern = re.compile(pattern=r'([:\-(\[<]+)\s', flags=re.MULTILINE)
     emoji_pattern: re.Pattern = re.compile(pattern=r'(:)([a-z_\-]+)(:)', flags=re.IGNORECASE|re.MULTILINE)
     logger: logging.Logger = None
@@ -77,9 +78,9 @@ class NormalizeText:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping normalizing notes...")
-            return self.input
-
-        self.logger.info("Normalizing notes...")
+            self.skipped: bool = True
+        else:
+            self.logger.info("Normalizing notes...")
 
         if type(self.input) is str:
             return self._get_normalized_text(text=self.input)
@@ -88,7 +89,15 @@ class NormalizeText:
             return
 
         notes: list = []
-        for note in self.input:
+        for note_data in self.input:
+            if "note" not in note_data:
+                continue
+
+            if "tags" not in note_data:
+                continue
+
+            note: dict = note_data["note"][-1].copy()
+
             if "text" not in note:
                 continue
 
@@ -99,14 +108,25 @@ class NormalizeText:
                 "show": self.show_tag
             }
 
-            text: str = self._get_normalized_text(text=note["text"])
+            text: str = note["text"]
+            if not self.skipped:
+                text: str = self._get_normalized_text(text=note["text"])
 
             # If modification did not take effect, then remove tag
             if self.show_tag and note["text"] == text:
                 tag["show"] = False
 
-            note["text"] = text
-            note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
+            note["text"] = text.strip()
+            note_data["tags"] = note_data["tags"] + [tag] if "tags" in note_data else [tag]
+
+            # Add Note To List
+            note_data["note"].append(note)
+
+            notes.append({
+                "note": note_data["note"],
+                "tags": note_data["tags"]
+            })
+
             notes.append(note)
 
         return notes

@@ -20,6 +20,7 @@ class PostNotes:
     session: requests.Session = requests.Session()
 
     # Non-Configurable
+    skipped: bool = False
     setup: bool = False
     logger: logging.Logger = None
     LESSERDEBUG: int = 15
@@ -83,9 +84,9 @@ class PostNotes:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping posting notes...")
-            return self.input
-
-        self.logger.info("Posting notes...")
+            self.skipped: bool = True
+        else:
+            self.logger.info("Posting notes...")
 
         if type(self.input) is str:
             return self._post_note(text=self.input)
@@ -94,14 +95,15 @@ class PostNotes:
             return
 
         notes: list = []
-        for note in self.input:
-            if "text" not in note:
+        for note_data in self.input:
+            if "note" not in note_data:
                 continue
 
-            response: requests.Response = self._post_note(text=note["text"])
+            if not self.skipped:
+                response: requests.Response = self._post_note(text=note_data["note"][-1]["text"])
+                note_data["response"] = response
 
-            note["response"] = response
-            notes.append(note)
+            notes.append(note_data)
 
             if response is not None and response.status_code == 429:
                 self.logger.error(f"Hit rate limit... returning...")

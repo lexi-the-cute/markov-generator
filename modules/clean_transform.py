@@ -11,6 +11,7 @@ class CleanText:
     show_tag: bool = False
 
     # Non-Configurable
+    skipped: bool = False
     markdown_link_pattern: re.Pattern = re.compile(pattern=r"\[.*\]\(http.+\)", flags=re.IGNORECASE|re.MULTILINE)
     url_pattern: re.Pattern = re.compile(pattern=r"http\S+", flags=re.IGNORECASE|re.MULTILINE)
     logger: logging.Logger = None
@@ -50,9 +51,9 @@ class CleanText:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping cleaning notes...")
-            return self.input
-
-        self.logger.info("Cleaning notes...")
+            self.skipped: bool = True
+        else:
+            self.logger.info("Cleaning notes...")
 
         if type(self.input) is str:
             return self._get_cleaned_text(text=self.input)
@@ -61,7 +62,15 @@ class CleanText:
             return
 
         notes: list = []
-        for note in self.input:
+        for note_data in self.input:
+            if "note" not in note_data:
+                continue
+
+            if "tags" not in note_data:
+                continue
+
+            note: dict = note_data["note"][-1].copy()
+
             if "text" not in note:
                 continue
 
@@ -72,14 +81,25 @@ class CleanText:
                 "show": self.show_tag
             }
 
-            text: str = self._get_cleaned_text(text=note["text"])
+            text: str = note["text"]
+            if not self.skipped:
+                text: str = self._get_cleaned_text(text=note["text"])
 
             # If modification did not take effect, then remove tag
             if self.show_tag and note["text"] == text:
                 tag["show"] = False
 
-            note["text"] = text
-            note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
+            note["text"] = text.strip()
+            note_data["tags"] = note_data["tags"] + [tag] if "tags" in note_data else [tag]
+
+            # Add Note To List
+            note_data["note"].append(note)
+
+            notes.append({
+                "note": note_data["note"],
+                "tags": note_data["tags"]
+            })
+
             notes.append(note)
 
         return notes

@@ -13,6 +13,7 @@ class FilterNotes:
     show_tag: bool = False
 
     # Non-Configurable
+    skipped: bool = False
     setup: bool = False
     banned_visibilities: list = ["specified", "hidden"]  # public, home, followers, specified, hidden
     banned_renote: bool = True
@@ -72,9 +73,9 @@ class FilterNotes:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping filtering notes...")
-            return self.input
-
-        self.logger.info("Filtering notes...")
+            self.skipped: bool = True
+        else:
+            self.logger.info("Filtering notes...")
 
         if type(self.input) is str:
             return self._get_should_filter_note_text(text=self.input)
@@ -83,18 +84,27 @@ class FilterNotes:
             return
 
         notes: list = []
-        for note in self.input:
+        for note_data in self.input:
+            if "note" not in note_data:
+                continue
+
+            if "tags" not in note_data:
+                continue
+
+            note: dict = note_data["note"][-1]
+
             if "text" not in note:
                 continue
 
             if "meta" not in note:
                 continue
 
-            if self._get_should_filter_note_meta(meta=note["meta"]):
-                continue
+            if not self.skipped:
+                if self._get_should_filter_note_meta(meta=note["meta"]):
+                    continue
 
-            if self._get_should_filter_note_text(text=note["text"]):
-                continue
+                if self._get_should_filter_note_text(text=note["text"].strip()):
+                    continue
 
             # Create Operation Tag
             tag: dict = {
@@ -104,12 +114,17 @@ class FilterNotes:
             }
 
             # Add Tag To List
-            note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
+            note_data["tags"] = note_data["tags"] + [tag] if "tags" in note_data else [tag]
+
+            # Add Note To List
+            note_data["note"].append({
+                "text": note["text"].strip(),
+                "meta": note["meta"]
+            })
 
             notes.append({
-                "text": note["text"],
-                "meta": note["meta"],
-                "tags": note["tags"]
+                "note": note_data["note"],
+                "tags": note_data["tags"]
             })
 
         return notes

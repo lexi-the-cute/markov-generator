@@ -75,6 +75,7 @@ class GenerateMarkov:
     }
 
     # Non-Configurable
+    skipped: bool = False
     logger: logging.Logger = None
     LESSERDEBUG: int = 15
     VERBOSE: int = 5
@@ -152,7 +153,7 @@ class GenerateMarkov:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping generating notes...")
-            return self.input
+            return self.input  # This is a special case, if this was skipped the way other modules are, there would be no data left
 
         self.logger.info("Markovifying notes...")
 
@@ -185,10 +186,16 @@ class GenerateMarkov:
                 "show": self.show_tag
             }
 
-            notes.append({
-                "text": self._get_markov_text(),
+            note: dict = {
+                "text": self._get_markov_text().strip()
+            }
+
+            notes.append(
+                {
+                "note": [note],
                 "tags": [tag]
-            })
+                }
+            )
 
         return notes
 

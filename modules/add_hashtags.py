@@ -11,6 +11,7 @@ class AddHashtags:
     show_tag: bool = False
 
     # Non-Configurable
+    skipped: bool = False
     logger: logging.Logger = None
     LESSERDEBUG: int = 15
     VERBOSE: int = 5
@@ -48,9 +49,9 @@ class AddHashtags:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping adding hashtags to notes...")
-            return self.input
-
-        self.logger.info("Adding hashtags to notes...")
+            self.skipped: bool = True
+        else:
+            self.logger.info("Adding hashtags to notes...")
 
         # Create Operation Tag
         tag: dict = {
@@ -66,16 +67,21 @@ class AddHashtags:
             return
 
         notes: list = []
-        for note in self.input:
+        for note_data in self.input:
+            if "note" not in note_data:
+                continue
+
+            if "tags" not in note_data:
+                note_data["tags"] = []
+
+            note: dict = note_data["note"][-1].copy()
+
             if "text" not in note:
                 continue
 
-            if "tags" not in note:
-                note["tags"] = []
-
             # We only want to add our tag if we add other tags
             modifies_text: bool = False
-            for note_tag in note["tags"]:
+            for note_tag in note_data["tags"]:
                 if "show" in note_tag and note_tag["show"] == True:
                     modifies_text: bool = True
 
@@ -83,9 +89,15 @@ class AddHashtags:
             if tag["show"] and not modifies_text:
                 tag["show"] = False
 
-            note["tags"] = note["tags"] + [tag] if "tags" in note else [tag]
-            note["text"] = self._get_tagged_text(text=note["text"], tags=note["tags"])
-            notes.append(note)
+            note_data["tags"] = note_data["tags"] + [tag] if "tags" in note_data else [tag]
+
+            if not self.skipped:
+                note["text"] = self._get_tagged_text(text=note["text"], tags=note_data["tags"]).strip()
+
+            # Add Note To List
+            note_data["note"].append(note)
+
+            notes.append(note_data)
 
         return notes
 

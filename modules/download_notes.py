@@ -12,6 +12,7 @@ except ImportError:
 
 class DownloadNotes:
     # Required
+    input: object = None
     host: str
     api_key: str
     user_id: str
@@ -33,6 +34,8 @@ class DownloadNotes:
     since_id: str = None
     processed_notes: int = 0
     logger: logging.Logger = None
+    LESSERDEBUG: int = 15
+    VERBOSE: int = 5
 
     def __init__(self):
         """
@@ -79,10 +82,10 @@ class DownloadNotes:
 
     def set_input(self, input: object):
         """
-            This operation is not implemented on this module
+            Set the input used by this module
         """
         
-        pass
+        self.input = input
 
     def run(self):
         """
@@ -96,7 +99,7 @@ class DownloadNotes:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping downloading notes...")
-            return self.input
+            return self.input    # This is a special case, if this was skipped the way other modules are, there would be no data
 
         self.logger.info("Downloading notes...")
 
@@ -112,7 +115,7 @@ class DownloadNotes:
                 corpus: csv.reader = csv.reader(f)
 
                 first_loop: bool = True
-                for note in corpus:
+                for note_data in corpus:
                     if first_loop:
                         first_loop: bool = False
                         continue
@@ -124,9 +127,13 @@ class DownloadNotes:
                         "show": self.show_tag
                     }
 
+                    note: dict = {
+                        "text": note_data[0].strip(),
+                        "meta": json.loads(note_data[1])
+                    }
+
                     notes.append({
-                        "text": note[0],
-                        "meta": json.loads(note[1]),
+                        "note": [note],  # The list is so versions can be tracked
                         "tags": [tag]
                     })
 
@@ -207,23 +214,23 @@ class DownloadNotes:
             if len(notes) == 0:
                 loop: bool = False
 
-            for note in notes:
-                self.since_id: str = note["id"]
+            for note_data in notes:
+                self.since_id: str = note_data["id"]
 
                 meta: dict = {
-                    "visibility": note["visibility"],
-                    "is_renote": True if note["renoteId"] is not None else False,
-                    "is_reply": True if note["replyId"] is not None else False,
-                    "has_cw": True if note["cw"] is not None else False,
-                    "has_mentions": True if "mentions" in note and len(note["mentions"]) > 0 else False,
-                    "has_zws": True if "\u200B" in note["text"] else False,
+                    "visibility": note_data["visibility"],
+                    "is_renote": True if note_data["renoteId"] is not None else False,
+                    "is_reply": True if note_data["replyId"] is not None else False,
+                    "has_cw": True if note_data["cw"] is not None else False,
+                    "has_mentions": True if "mentions" in note_data and len(note_data["mentions"]) > 0 else False,
+                    "has_zws": True if "\u200B" in note_data["text"].strip() else False,
                 }
 
-                if meta["has_mentions"] == False and re.search(mentions_pattern, note["text"]) is not None:
+                if meta["has_mentions"] == False and re.search(mentions_pattern, note_data["text"].strip()) is not None:
                     meta["has_mentions"] = True
 
                 self.processed_notes += 1
-                corpus.writerow([note["text"], json.dumps(meta)])
+                corpus.writerow([note_data["text"], json.dumps(meta)])  # Intentionally leaving unstripped here
 
                 # Create Operation Tag
                 tag: dict = {
@@ -232,8 +239,12 @@ class DownloadNotes:
                     "show": self.show_tag
                 }
 
+                note: dict = {
+                    "text": note_data["text"].strip(),
+                    "meta": meta
+                }
+
                 yield {
-                    "text": note["text"],
-                    "meta": meta,
+                    "note": [note],  # The list is so versions can be tracked
                     "tags": [tag]
                 }
