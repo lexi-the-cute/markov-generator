@@ -22,7 +22,6 @@ class DownloadNotes:
     limit: int = 100
     session: requests.Session = requests.Session()
     file_path: str = "corpus.csv"
-    tracker_file_path: str = "latest_id.txt"
     show_tag: bool = False
 
     # Non-Configurable
@@ -103,11 +102,6 @@ class DownloadNotes:
 
         self.logger.info("Downloading notes...")
 
-        # Get Saved Latest ID If Exists
-        if os.path.exists(self.tracker_file_path):
-            with open(file=self.tracker_file_path, mode="r") as f:
-                self.since_id: str = f.read().strip()
-
         # Import Existing Notes
         notes: list = []
         if os.path.exists(self.file_path):
@@ -120,6 +114,8 @@ class DownloadNotes:
                         first_loop: bool = False
                         continue
 
+                    self.since_id: str = note_data[0].strip()
+
                     # Create Operation Tag
                     tag: dict = {
                         "name": "DownloadNotes",
@@ -128,8 +124,8 @@ class DownloadNotes:
                     }
 
                     note: dict = {
-                        "text": note_data[0].strip(),
-                        "meta": json.loads(note_data[1])
+                        "text": note_data[1].strip(),
+                        "meta": json.loads(note_data[2])
                     }
 
                     notes.append({
@@ -144,10 +140,6 @@ class DownloadNotes:
 
         # Combine New and Existing Notes
         notes: list = notes + new_notes
-
-        # Save Latest ID
-        with open(file=self.tracker_file_path, mode="w") as f:
-            f.write(self.since_id)
 
         return notes
 
@@ -186,7 +178,7 @@ class DownloadNotes:
         mentions_pattern: re.Pattern = re.compile(pattern=r"(@)([A-Za-z0-9_]+@[A-Za-z0-9_.]+)\w+")
 
         if not self._has_header():
-            corpus.writerow(["text", "meta"])
+            corpus.writerow(["id", "text", "meta"])
 
         loop: bool = True
         while loop:
@@ -230,7 +222,7 @@ class DownloadNotes:
                     meta["has_mentions"] = True
 
                 self.processed_notes += 1
-                corpus.writerow([note_data["text"], json.dumps(meta)])  # Intentionally leaving unstripped here
+                corpus.writerow([note_data["id"], note_data["text"], json.dumps(meta)])  # Intentionally leaving unstripped here
 
                 # Create Operation Tag
                 tag: dict = {
