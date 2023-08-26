@@ -142,6 +142,7 @@ class NormalizeText:
         if self.should_recase_sentence:
             text: str = text.capitalize()
         
+        text: str = " ".join(text.split())  # Remove extra whitespace
         text: str = text.replace("Hmmmmmmm", "hmmmmmmm...")
         text: str = text.replace(" uwu ", " UwU ")
         text: str = text.replace(" owo ", " OwO ")
