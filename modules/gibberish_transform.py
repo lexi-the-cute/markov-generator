@@ -19,6 +19,7 @@ class GibberishText:
     # Default
     chance_execute: float = 1.0
     show_tag: bool = True
+    hard_skip: bool = False
     tokenizer_language: str = "english"
     word_pattern: re.Pattern = re.compile(pattern=r'^[a-zñáéíóúü]+$', flags=re.IGNORECASE|re.MULTILINE)
     vowels: list = ["a", "e", "i", "o", "u"]
@@ -58,6 +59,9 @@ class GibberishText:
         if "chance_execute" in settings:
             self.chance_execute = settings["chance_execute"]
 
+        if "hard_skip" in settings:
+            self.hard_skip = settings["hard_skip"]
+
         # Download PUNKT lexicon for rebuilding sentences
         # PUNKT is designed for tokenizing words
         try:
@@ -81,6 +85,10 @@ class GibberishText:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping gibberishifying notes...")
+
+            if self.hard_skip:
+                return self.input
+
             self.skipped: bool = True
         else:
             self.logger.info("Gibberishifying notes...")

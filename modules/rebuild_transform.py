@@ -22,6 +22,7 @@ class RebuildText:
     show_tag: bool = False
     detokenizer_language: str = "en"
     tokenizer_language: str = "english"
+    hard_skip: bool = False
 
     # Non-Configurable
     skipped: bool = False
@@ -57,6 +58,9 @@ class RebuildText:
         if "chance_execute" in settings:
             self.chance_execute = settings["chance_execute"]
 
+        if "hard_skip" in settings:
+            self.hard_skip = settings["hard_skip"]
+
         # Download PUNKT lexicon for rebuilding sentences
         # PUNKT is designed for tokenizing words
         try:
@@ -82,6 +86,10 @@ class RebuildText:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping rebuilding notes...")
+
+            if self.hard_skip:
+                return self.input
+
             self.skipped: bool = True
         else:
             self.logger.info("Rebuilding notes...")

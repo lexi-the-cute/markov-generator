@@ -10,6 +10,7 @@ class NormalizeText:
     should_recase_sentence: bool = True
     chance_execute: float = 1.0
     show_tag: bool = False
+    hard_skip: bool = False
     names: list[str] = [
         "becky",
         "prim",
@@ -63,6 +64,9 @@ class NormalizeText:
         if "should_recase_sentence" in settings:
             self.should_recase_sentence = settings["should_recase_sentence"]
 
+        if "hard_skip" in settings:
+            self.hard_skip = settings["hard_skip"]
+
     def set_input(self, input: object):
         """
             Set the input used by this module
@@ -78,6 +82,10 @@ class NormalizeText:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping normalizing notes...")
+
+            if self.hard_skip:
+                return self.input
+
             self.skipped: bool = True
         else:
             self.logger.info("Normalizing notes...")

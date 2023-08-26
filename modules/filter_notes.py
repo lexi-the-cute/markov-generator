@@ -11,6 +11,7 @@ class FilterNotes:
     # Default
     chance_execute: float = 1.0
     show_tag: bool = False
+    hard_skip: bool = False
 
     # Non-Configurable
     skipped: bool = False
@@ -51,6 +52,9 @@ class FilterNotes:
         if "chance_execute" in settings:
             self.chance_execute = settings["chance_execute"]
 
+        if "hard_skip" in settings:
+            self.hard_skip = settings["hard_skip"]
+
         if count == 1:
             self.setup = True
 
@@ -73,6 +77,10 @@ class FilterNotes:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping filtering notes...")
+
+            if self.hard_skip:
+                return self.input
+
             self.skipped: bool = True
         else:
             self.logger.info("Filtering notes...")

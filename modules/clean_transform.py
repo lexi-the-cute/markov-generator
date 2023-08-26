@@ -9,6 +9,7 @@ class CleanText:
     # Default
     chance_execute: float = 1.0
     show_tag: bool = False
+    hard_skip: bool = False
 
     # Non-Configurable
     skipped: bool = False
@@ -36,6 +37,9 @@ class CleanText:
         if "chance_execute" in settings:
             self.chance_execute = settings["chance_execute"]
 
+        if "hard_skip" in settings:
+            self.hard_skip = settings["hard_skip"]
+
     def set_input(self, input: object):
         """
             Set the input used by this module
@@ -51,6 +55,10 @@ class CleanText:
         # Gives probability of executing module
         if self.chance_execute < random.random():
             self.logger.log(level=self.LESSERDEBUG, msg="Hit random chance of skipping cleaning notes...")
+
+            if self.hard_skip:
+                return self.input
+
             self.skipped: bool = True
         else:
             self.logger.info("Cleaning notes...")
