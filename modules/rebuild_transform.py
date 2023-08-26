@@ -105,9 +105,6 @@ class RebuildText:
             if "note" not in note_data:
                 continue
 
-            if "tags" not in note_data:
-                continue
-
             note: dict = note_data["note"][-1].copy()
 
             if "text" not in note:
@@ -129,17 +126,14 @@ class RebuildText:
                 tag["show"] = False
 
             note["text"] = text.strip()
-            note_data["tags"] = note_data["tags"] + [tag] if "tags" in note_data else [tag]
+            note["tag"] = tag
 
             # Add Note To List
             note_data["note"].append(note)
 
             notes.append({
-                "note": note_data["note"],
-                "tags": note_data["tags"]
+                "note": note_data["note"]
             })
-
-            notes.append(note)
 
         return notes
 

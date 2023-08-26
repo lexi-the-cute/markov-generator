@@ -125,21 +125,17 @@ class DownloadNotes:
 
                     note: dict = {
                         "text": note_data[1].strip(),
-                        "meta": json.loads(note_data[2])
+                        "meta": json.loads(note_data[2]),
+                        "tag": tag
                     }
 
                     notes.append({
                         "note": [note],  # The list is so versions can be tracked
-                        "tags": [tag]
                     })
 
         # Import New Notes
-        new_notes: list = []
         for note in self._update_corpus():
-            new_notes.append(note)
-
-        # Combine New and Existing Notes
-        notes: list = notes + new_notes
+            notes.append(note)
 
         return notes
 
@@ -233,10 +229,10 @@ class DownloadNotes:
 
                 note: dict = {
                     "text": note_data["text"].strip(),
-                    "meta": meta
+                    "meta": meta,
+                    "tag": tag
                 }
 
                 yield {
                     "note": [note],  # The list is so versions can be tracked
-                    "tags": [tag]
                 }

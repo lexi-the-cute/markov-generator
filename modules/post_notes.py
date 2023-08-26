@@ -128,6 +128,9 @@ class PostNotes:
             if response is not None and response.status_code != 200:
                 self.logger.warning(f"Status code is {status}...")
 
+        import json
+        print(json.dumps(notes))
+        exit(0)
         return notes
 
     def _post_note(self, text: str):

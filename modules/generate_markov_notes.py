@@ -164,7 +164,12 @@ class GenerateMarkov:
         # Turn list of notes into a single text corpus
         texts: list = []
         if type(self.input) is list:
-            for note in self.input:
+            for note_data in self.input:
+                if "note" not in note_data:
+                    continue
+
+                note: dict = note_data["note"][-1].copy()
+
                 if "text" not in note:
                     continue
 
@@ -187,15 +192,13 @@ class GenerateMarkov:
             }
 
             note: dict = {
-                "text": self._get_markov_text().strip()
+                "text": self._get_markov_text().strip(),
+                "tag": tag
             }
 
-            notes.append(
-                {
-                "note": [note],
-                "tags": [tag]
-                }
-            )
+            notes.append({
+                "note": [note]
+            })
 
         return notes
 

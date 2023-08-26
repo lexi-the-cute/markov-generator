@@ -96,9 +96,6 @@ class FilterNotes:
             if "note" not in note_data:
                 continue
 
-            if "tags" not in note_data:
-                continue
-
             note: dict = note_data["note"][-1]
 
             if "text" not in note:
@@ -121,18 +118,15 @@ class FilterNotes:
                 "show": self.show_tag
             }
 
-            # Add Tag To List
-            note_data["tags"] = note_data["tags"] + [tag] if "tags" in note_data else [tag]
-
             # Add Note To List
             note_data["note"].append({
                 "text": note["text"].strip(),
-                "meta": note["meta"]
+                "meta": note["meta"],
+                "tag": tag
             })
 
             notes.append({
-                "note": note_data["note"],
-                "tags": note_data["tags"]
+                "note": note_data["note"]
             })
 
         return notes

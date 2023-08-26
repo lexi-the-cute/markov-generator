@@ -79,28 +79,26 @@ class AddHashtags:
             if "note" not in note_data:
                 continue
 
-            if "tags" not in note_data:
-                note_data["tags"] = []
-
             note: dict = note_data["note"][-1].copy()
 
             if "text" not in note:
                 continue
 
             # We only want to add our tag if we add other tags
-            modifies_text: bool = False
-            for note_tag in note_data["tags"]:
-                if "show" in note_tag and note_tag["show"] == True:
-                    modifies_text: bool = True
+            tags: list = []
+            for note_history in note_data["note"]:
+                tag_data: dict = note_history["tag"]
+                if "show" in tag_data and tag_data["show"] == True:
+                    tags.append(tag_data)
 
             tag["show"] = self.show_tag
             if tag["show"] and not modifies_text:
                 tag["show"] = False
 
-            note_data["tags"] = note_data["tags"] + [tag] if "tags" in note_data else [tag]
-
             if not self.skipped:
-                note["text"] = self._get_tagged_text(text=note["text"], tags=note_data["tags"]).strip()
+                note["text"] = self._get_tagged_text(text=note["text"], tags=tags).strip()
+
+            note["tag"] = tag
 
             # Add Note To List
             note_data["note"].append(note)
