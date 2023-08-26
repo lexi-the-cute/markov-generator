@@ -1,3 +1,4 @@
+import json
 import random
 import logging
 
@@ -14,6 +15,7 @@ class PostNotes:
 
     # Default
     chance_execute: float = 1.0
+    show_tag: bool = False
     dry_run: bool = True
     hard_skip: bool = False
     content_warning: str = None
@@ -66,6 +68,9 @@ class PostNotes:
         if "hard_skip" in settings:
             self.hard_skip = settings["hard_skip"]
 
+        if "show_tag" in settings:
+            self.show_tag = settings["show_tag"]
+
         if count == 2:
             self.setup = True
 
@@ -102,15 +107,29 @@ class PostNotes:
         if type(self.input) is not list:
             return
 
+        tag: dict = {
+            "name": "PostNotes",
+            "operation": "publish",
+            "show": self.show_tag
+        }
+
         notes: list = []
         for note_data in self.input:
             if "note" not in note_data:
                 continue
 
-            if not self.skipped:
-                response: requests.Response = self._post_note(text=note_data["note"][-1]["text"])
-                note_data["response"] = response
+            note: dict = note_data["note"][-1].copy()
+            note["tag"] = tag
 
+            if not self.skipped:
+                response: requests.Response = self._post_note(text=note["text"])
+
+                if "meta" in note:
+                    note["meta"]["response"] = response
+                else:
+                    note["meta"] = {"response": response}
+
+            note_data["note"].append(note)
             notes.append(note_data)
 
             if response is not None and response.status_code == 429:
@@ -128,6 +147,7 @@ class PostNotes:
             if response is not None and response.status_code != 200:
                 self.logger.warning(f"Status code is {status}...")
 
+        self.logger.log(level=self.VERBOSE, msg=f"Post Notes Data: `{json.dumps(notes)}`")
         return notes
 
     def _post_note(self, text: str):

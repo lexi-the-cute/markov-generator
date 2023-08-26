@@ -1,4 +1,5 @@
 import re
+# import json
 import random
 import logging
 
@@ -156,6 +157,7 @@ class GenerateMarkov:
             return self.input  # This is a special case, if this was skipped the way other modules are, there would be no data left
 
         self.logger.info("Markovifying notes...")
+        # self.logger.log(level=self.VERBOSE, msg=f"Input Notes Data: `{json.dumps(self.input)}`")
 
         corpus: str = None
         if type(self.input) is str:
