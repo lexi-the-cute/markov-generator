@@ -124,10 +124,11 @@ class PostNotes:
             if not self.skipped:
                 response: requests.Response = self._post_note(text=note["text"])
 
-                if "meta" in note:
-                    note["meta"]["response"] = response
-                else:
-                    note["meta"] = {"response": response}
+                # Not JSON Serializable
+                # if "meta" in note:
+                #     note["meta"]["response"] = response
+                # else:
+                #     note["meta"] = {"response": response}
 
             note_data["note"].append(note)
             notes.append(note_data)
